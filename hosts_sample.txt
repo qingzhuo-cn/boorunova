@@ -1,0 +1,20 @@
+# BooruNova Hosts 规则
+# 格式: IP  域名（每行一条，#开头为注释）
+# 根据你的网络环境替换 IP 地址
+
+# Safebooru（可直接访问，无需 hosts）
+# 但如果你想用自定义 IP，可以取消下面的注释
+# 1.2.3.4  safebooru.org
+
+# Danbooru（需要用梯子或反代 IP）
+# xxx.xxx.xxx.xxx  danbooru.donmai.us
+
+# Gelbooru
+# xxx.xxx.xxx.xxx  gelbooru.com
+
+# yande.re / Konachan（Moebooru）
+# xxx.xxx.xxx.xxx  yande.re
+# xxx.xxx.xxx.xxx  konachan.com
+
+# Sankaku
+# xxx.xxx.xxx.xxx  chan.sankakucomplex.com
