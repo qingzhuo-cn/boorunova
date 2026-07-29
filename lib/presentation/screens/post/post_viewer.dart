@@ -163,13 +163,14 @@ class _PostViewerState extends ConsumerState<PostViewer> {
         onVerticalDragEnd: (details) {
           if (details.primaryVelocity == null) return;
           if (details.primaryVelocity!.abs() < 500) return;
-          final action = ref.read(settingsProvider).swipeDownAction;
           if (details.primaryVelocity! > 0) {
-            if (action == 'detail') {
+            if (ref.read(settingsProvider).swipeDownAction == 'detail') {
               _showDetails(context, post);
             } else {
               Navigator.of(context).pop();
             }
+          } else {
+            Navigator.of(context).pop();
           }
         },
         child: PageView.builder(
@@ -195,7 +196,11 @@ class _PostViewerState extends ConsumerState<PostViewer> {
             }
 
             return GestureDetector(
-              onTap: () => _showDetails(context, p),
+              onTap: () {
+                if (ref.read(settingsProvider).tapAction == 'detail') {
+                  _showDetails(context, p);
+                }
+              },
               child: InteractiveViewer(
                 minScale: 1.0,
                 maxScale: 5.0,
