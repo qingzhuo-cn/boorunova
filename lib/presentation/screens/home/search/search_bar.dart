@@ -248,7 +248,7 @@ class _HomeSearchBarState extends ConsumerState<HomeSearchBar> {
             ),
           ],
         ),
-        if (_isOpen && (_lastQuery.length >= 1 || searchHistory.isNotEmpty || trendingTags.asData != null))
+        if (_isOpen && (_lastQuery.length >= 1 || searchHistory.isNotEmpty || _showSearchHistory))
           Positioned(
             bottom: 56,
             left: 8,

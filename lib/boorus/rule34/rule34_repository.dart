@@ -60,6 +60,24 @@ class Rule34Repository extends BooruRepository {
   }
 
   @override
+  Future<List<String>> fetchTrendingTags({int limit = 20}) async {
+    final response = await _dio.get(
+      '/index.php',
+      queryParameters: {
+        'page': 'dapi',
+        's': 'tag',
+        'q': 'index',
+        'orderby': 'count',
+        'limit': limit,
+        'json': 1,
+      },
+    );
+    final data = response.data;
+    if (data is! List) return [];
+    return Rule34Parser.parseSuggestions(data);
+  }
+
+  @override
   Future<bool> addFavorite(String postId) async => false;
 
   @override

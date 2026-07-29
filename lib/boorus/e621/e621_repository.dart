@@ -47,6 +47,24 @@ class E621Repository extends BooruRepository {
   }
 
   @override
+  Future<List<String>> fetchTrendingTags({int limit = 20}) async {
+    final response = await _dio.get(
+      '/tags.json',
+      queryParameters: {
+        'search[order]': 'count',
+        'limit': limit,
+      },
+    );
+    final data = response.data;
+    if (data is! List) return [];
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map((e) => (e['name'] as String?) ?? '')
+        .where((name) => name.isNotEmpty)
+        .toList();
+  }
+
+  @override
   Future<bool> addFavorite(String postId) async {
     try {
       await _dio.post('/favorites.json', data: {'post_id': postId});
