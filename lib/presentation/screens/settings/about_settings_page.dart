@@ -16,7 +16,7 @@ class AboutSettingsPage extends StatelessWidget {
             const SizedBox(height: 12),
             const Text('BooruNova', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text('Version 1.0.0', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5))),
+            Text('Version 1.2.0', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5))),
             const SizedBox(height: 2),
             Text('MIT License', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4))),
           ]),
