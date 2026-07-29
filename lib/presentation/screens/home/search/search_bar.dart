@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:boorunova/data/repository/search_history/search_history_repo.dart';
 import 'package:boorunova/presentation/l10n/app_strings.dart';
+import 'package:boorunova/presentation/provider/app_settings.dart';
 import 'package:boorunova/presentation/provider/booru/page_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -147,7 +148,7 @@ class _HomeSearchBarState extends ConsumerState<HomeSearchBar> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
+                duration: Duration(milliseconds: ref.watch(settingsProvider).reduceAnimations ? 0 : 300),
                 decoration: BoxDecoration(
                   color: Theme.of(context)
                       .colorScheme
