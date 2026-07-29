@@ -31,10 +31,12 @@ class SettingsPage extends ConsumerWidget {
         _SettingEntry(icon: Icons.image_outlined, title: '图片查看器', subtitle: '滑动、幻灯片、视频', route: '/settings/viewer'),
         _SettingEntry(icon: Icons.gesture_outlined, title: '手势', subtitle: '滑动、点击、长按动作', route: '/settings/gestures'),
         _SettingEntry(icon: Icons.search_outlined, title: '搜索', subtitle: '搜索选项、过滤', route: '/settings/search'),
+        _SettingEntry(icon: Icons.history_outlined, title: '搜索历史', subtitle: '查看管理搜索记录', route: '/search-history'),
       ]),
       _Section('数据', [
         _SettingEntry(icon: Icons.download_outlined, title: '下载', subtitle: '下载路径、质量', route: '/settings/download'),
         _SettingEntry(icon: Icons.storage_outlined, title: '数据与存储', subtitle: '缓存管理、存储空间', route: '/settings/data'),
+        _SettingEntry(icon: Icons.backup_outlined, title: '备份恢复', subtitle: '导出/导入数据', route: '/settings/backup'),
       ]),
       _Section('服务器', [
         _SettingEntry(icon: Icons.dns_outlined, title: '服务器管理', subtitle: '添加、编辑、排序', route: '/servers'),

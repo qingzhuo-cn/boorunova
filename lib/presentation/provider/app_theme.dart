@@ -13,25 +13,25 @@ final appThemeModeProvider = StateProvider<AppThemeMode>((ref) {
 });
 
 class AppTheme {
-  static ThemeData light() {
+  static ThemeData light({Color accentColor = const Color(0xFF951EE5)}) {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF951EE5),
+      seedColor: accentColor,
       brightness: Brightness.light,
     );
     return _buildTheme(colorScheme);
   }
 
-  static ThemeData dark() {
+  static ThemeData dark({Color accentColor = const Color(0xFF951EE5)}) {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF951EE5),
+      seedColor: accentColor,
       brightness: Brightness.dark,
     );
     return _buildTheme(colorScheme);
   }
 
-  static ThemeData midnight() {
+  static ThemeData midnight({Color accentColor = const Color(0xFF951EE5)}) {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF951EE5),
+      seedColor: accentColor,
       brightness: Brightness.dark,
     ).copyWith(
       surface: const Color(0xFF121212),
@@ -40,7 +40,7 @@ class AppTheme {
       surfaceContainerHigh: const Color(0xFF252525),
       surfaceContainerHighest: const Color(0xFF2C2C2C),
     );
-    return dark().copyWith(
+    return dark(accentColor: accentColor).copyWith(
       scaffoldBackgroundColor: const Color(0xFF121212),
       colorScheme: colorScheme,
       appBarTheme: const AppBarTheme(

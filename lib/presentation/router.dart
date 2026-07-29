@@ -14,6 +14,8 @@ import 'package:boorunova/presentation/screens/server/server_page.dart';
 import 'package:boorunova/presentation/screens/settings/appearance_page.dart';
 import 'package:boorunova/presentation/screens/settings/about_settings_page.dart';
 import 'package:boorunova/presentation/screens/settings/booru_config_page.dart';
+import 'package:boorunova/presentation/provider/app_settings.dart';
+import 'package:boorunova/presentation/screens/settings/data_backup_page.dart';
 import 'package:boorunova/presentation/screens/settings/data_storage_page.dart';
 import 'package:boorunova/presentation/screens/settings/download_settings_page.dart';
 import 'package:boorunova/presentation/screens/settings/gestures_page.dart';
@@ -29,9 +31,12 @@ import 'package:go_router/go_router.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-Page<T> _slidePage<T>(Widget child) {
+Page<T> _slidePage<T>(Widget child, {bool reduceAnimations = false}) {
+  final duration = reduceAnimations ? Duration.zero : const Duration(milliseconds: 300);
   return CustomTransitionPage<T>(
     child: child,
+    transitionDuration: duration,
+    reverseTransitionDuration: duration,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       return SlideTransition(
         position: Tween<Offset>(
@@ -53,6 +58,7 @@ Page<T> _slidePage<T>(Widget child) {
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
+  final reduce = ref.watch(settingsProvider).reduceAnimations;
   return GoRouter(
     navigatorKey: navigatorKey,
     initialLocation: '/',
@@ -141,6 +147,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'data',
             name: 'settings-data',
             pageBuilder: (context, state) => _slidePage(const DataStoragePage()),
+          ),
+          GoRoute(
+            path: 'backup',
+            name: 'settings-backup',
+            pageBuilder: (context, state) => _slidePage(const DataBackupPage()),
           ),
           GoRoute(
             path: 'booru',

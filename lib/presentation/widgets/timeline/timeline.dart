@@ -139,6 +139,7 @@ class _PostTile extends StatelessWidget {
                   post.thumbnailUrl,
                   fit: BoxFit.cover,
                   cache: true,
+                  cacheWidth: 360,
                   loadStateChanged: (state) {
                     if (state.extendedImageLoadState == LoadState.loading) {
                       return const _ShimmerTile();

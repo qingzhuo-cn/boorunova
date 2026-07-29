@@ -3,6 +3,7 @@ import 'package:boorunova/data/repository/server/user_server_repo.dart';
 import 'package:boorunova/presentation/l10n/app_strings.dart';
 import 'package:boorunova/presentation/screens/server/booru_site_template.dart';
 import 'package:boorunova/presentation/screens/server/server_editor_page.dart';
+import 'package:boorunova/presentation/screens/server/server_probe_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,7 +22,7 @@ class ServerPage extends ConsumerWidget {
         heroTag: 'custom_server',
         onPressed: () {
           Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const ServerEditorPage()),
+            MaterialPageRoute(builder: (_) => const ServerScanPage()),
           );
         },
         child: const Icon(Icons.add),

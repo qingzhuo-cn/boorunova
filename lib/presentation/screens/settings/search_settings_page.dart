@@ -13,17 +13,11 @@ class SearchSettingsPage extends ConsumerWidget {
       body: ListView(children: [
         ListTile(
           title: const Text('建议标签数量'),
-          subtitle: Text('当前: $cols 个'),
-          trailing: SizedBox(
-            width: 120,
-            child: Slider(
-              value: cols.toDouble(), min: 4, max: 20, divisions: 16,
-              label: '$cols',
-              onChanged: (v) => ref.read(gridColumnsProvider.notifier).state = v.round(),
-            ),
-          ),
+          subtitle: Text('$cols 个'),
+          trailing: SizedBox(width: 140, child: Slider(value: cols.toDouble(), min: 4, max: 20, divisions: 16, label: '$cols', onChanged: (v) => ref.read(gridColumnsProvider.notifier).state = v.round())),
         ),
       ]),
     );
   }
 }
+

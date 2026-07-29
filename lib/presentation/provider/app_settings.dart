@@ -20,6 +20,7 @@ class AppSettings {
     this.doubleTapAction = 'zoom',
     this.longPressAction = 'fav',
     this.downloadPath = '',
+    this.reduceAnimations = false,
   });
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
@@ -38,6 +39,7 @@ class AppSettings {
         doubleTapAction: json['doubleTapAction'] as String? ?? 'zoom',
         longPressAction: json['longPressAction'] as String? ?? 'fav',
         downloadPath: json['downloadPath'] as String? ?? '',
+        reduceAnimations: json['reduceAnimations'] as bool? ?? false,
       );
 
   final AppThemeMode themeMode;
@@ -52,6 +54,7 @@ class AppSettings {
   final String doubleTapAction;
   final String longPressAction;
   final String downloadPath;
+  final bool reduceAnimations;
 
   AppSettings copyWith({
     AppThemeMode? themeMode,
@@ -66,6 +69,7 @@ class AppSettings {
     String? doubleTapAction,
     String? longPressAction,
     String? downloadPath,
+    bool? reduceAnimations,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -80,6 +84,7 @@ class AppSettings {
         doubleTapAction: doubleTapAction ?? this.doubleTapAction,
         longPressAction: longPressAction ?? this.longPressAction,
         downloadPath: downloadPath ?? this.downloadPath,
+        reduceAnimations: reduceAnimations ?? this.reduceAnimations,
       );
 
   Map<String, dynamic> toJson() => {
@@ -95,6 +100,7 @@ class AppSettings {
         'doubleTapAction': doubleTapAction,
         'longPressAction': longPressAction,
         'downloadPath': downloadPath,
+        'reduceAnimations': reduceAnimations,
       };
 }
 
@@ -167,6 +173,11 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   Future<void> setDownloadPath(String path) async {
     state = state.copyWith(downloadPath: path);
+    await _persist();
+  }
+
+  Future<void> setReduceAnimations(bool enabled) async {
+    state = state.copyWith(reduceAnimations: enabled);
     await _persist();
   }
 

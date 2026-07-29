@@ -106,8 +106,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _serverFavicon(String baseUrl, BooruType type, {double size = 16}) {
     try {
-      final clean = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
-      final faviconUrl = '$clean/favicon.ico';
+      final uri = Uri.parse(baseUrl);
+      final faviconUrl = 'https://icons.duckduckgo.com/ip3/${uri.host}.ico';
       return ClipRRect(
         borderRadius: BorderRadius.circular(4),
         child: Image.network(

@@ -41,6 +41,12 @@ class AppearanceSettingsPage extends ConsumerWidget {
             }).toList(),
           ),
         ),
+        SwitchListTile(
+          title: const Text('减少动画'),
+          subtitle: const Text('提升低端设备流畅度'),
+          value: s.reduceAnimations,
+          onChanged: (v) => ref.read(settingsProvider.notifier).setReduceAnimations(v),
+        ),
       ]),
     );
   }

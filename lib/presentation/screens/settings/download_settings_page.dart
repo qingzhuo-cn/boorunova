@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:boorunova/presentation/provider/app_settings.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -24,6 +24,13 @@ class _DownloadSettingsPageState extends ConsumerState<DownloadSettingsPage> {
     if (mounted) setState(() => _defaultPath = dir.path);
   }
 
+  Future<void> _pickPath() async {
+    final result = await FilePicker.platform.getDirectoryPath();
+    if (result != null) {
+      await ref.read(settingsProvider.notifier).setDownloadPath(result);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
@@ -44,7 +51,15 @@ class _DownloadSettingsPageState extends ConsumerState<DownloadSettingsPage> {
         ListTile(
           title: const Text('下载路径'),
           subtitle: Text(settings.downloadPath.isNotEmpty ? settings.downloadPath : '默认: $_defaultPath', style: const TextStyle(fontSize: 11)),
+          trailing: const Icon(Icons.folder_open),
+          onTap: _pickPath,
         ),
+        if (settings.downloadPath.isNotEmpty)
+          ListTile(
+            title: const Text('重置为默认路径'),
+            trailing: const Icon(Icons.restore),
+            onTap: () => ref.read(settingsProvider.notifier).setDownloadPath(''),
+          ),
       ]),
     );
   }

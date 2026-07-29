@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 import 'package:boorunova/data/repository/favorites/user_favorite_repo.dart';
@@ -254,7 +256,12 @@ class _HomeContentState extends ConsumerState<HomeContent> {
             ],
           ),
         ),
-        HomeSearchBar(
+        ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Container(
+              decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.8)),
+              child: HomeSearchBar(
           leading: widget.favicon,
           collapsed: _searchCollapsed,
           currentQuery: currentQuery,
@@ -270,7 +277,10 @@ class _HomeContentState extends ConsumerState<HomeContent> {
             selectionNotifier.clear();
             ref.read(booruPageStateProvider.notifier).search(query);
           },
+          ),
         ),
+      ),
+    ),
         if (isSelectionMode)
           Padding(
             padding: const EdgeInsets.only(bottom: 16),

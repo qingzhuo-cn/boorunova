@@ -26,17 +26,18 @@ class _BooruNovaState extends ConsumerState<BooruNova> {
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(appThemeModeProvider);
+    final accentColor = Color(ref.watch(settingsProvider).accentColor);
 
     final darkTheme = switch (themeMode) {
-      AppThemeMode.midnight || AppThemeMode.system => AppTheme.midnight(),
-      _ => AppTheme.dark(),
+      AppThemeMode.midnight || AppThemeMode.system => AppTheme.midnight(accentColor: accentColor),
+      _ => AppTheme.dark(accentColor: accentColor),
     };
 
     return MaterialApp.router(
       title: 'BooruNova',
       debugShowCheckedModeBanner: false,
       routerConfig: router,
-      theme: AppTheme.light(),
+      theme: AppTheme.light(accentColor: accentColor),
       darkTheme: darkTheme,
       themeMode: _resolveThemeMode(themeMode),
       locale: const Locale('zh', 'CN'),

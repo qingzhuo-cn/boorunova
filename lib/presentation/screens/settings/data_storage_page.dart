@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class DataStoragePage extends StatefulWidget {
   const DataStoragePage({super.key});
@@ -57,6 +59,27 @@ class _DataStoragePageState extends State<DataStoragePage> {
           title: const Text('缓存'),
           subtitle: Text(_cacheSize),
           trailing: TextButton(onPressed: _clearCache, child: const Text('清除')),
+        ),
+        Consumer(
+          builder: (context, ref, _) {
+            final cache = PaintingBinding.instance.imageCache;
+            final imgs = cache.currentSize;
+            final imgBytes = cache.currentSizeBytes;
+            return ListTile(
+              leading: const Icon(Icons.image_outlined),
+              title: const Text('图片缓存'),
+              subtitle: Text('$imgs 张, ${(imgBytes / 1048576).toStringAsFixed(1)} MB'),
+              trailing: TextButton(
+                onPressed: () {
+                  cache.clear();
+                  cache.clearLiveImages();
+                  clearDiskCachedImages();
+                  setState(() {});
+                },
+                child: const Text('清除'),
+              ),
+            );
+          },
         ),
         const ListTile(
           leading: Icon(Icons.history),

@@ -117,14 +117,7 @@ class _PostViewerState extends ConsumerState<PostViewer> {
           ),
           IconButton(
             icon: _saving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
+                ? _DownloadProgressIcon(post: post)
                 : const Icon(Icons.download_outlined),
             onPressed: _saving ? null : () => _download(post),
           ),
@@ -161,6 +154,7 @@ class _PostViewerState extends ConsumerState<PostViewer> {
         ],
       ),
       body: GestureDetector(
+        onLongPress: _toggleSlideshow,
         onVerticalDragEnd: (details) {
           if (details.primaryVelocity == null) return;
           if (details.primaryVelocity!.abs() < 500) return;
@@ -174,6 +168,7 @@ class _PostViewerState extends ConsumerState<PostViewer> {
           }
         },
         child: PageView.builder(
+          scrollDirection: ref.watch(settingsProvider).viewerSwipeMode ? Axis.horizontal : Axis.vertical,
           controller: _pageController,
           itemCount: widget.posts.length,
           onPageChanged: (index) {
@@ -249,8 +244,10 @@ class _PostViewerState extends ConsumerState<PostViewer> {
   }
 
   Future<void> _download(PostSummary post) async {
-    final url =
-        post.originalUrl.isNotEmpty ? post.originalUrl : post.sampleUrl;
+    final quality = ref.read(settingsProvider).downloadQuality;
+    final url = quality == 'sample' && post.sampleUrl.isNotEmpty
+        ? post.sampleUrl
+        : (post.originalUrl.isNotEmpty ? post.originalUrl : post.sampleUrl);
     if (url.isEmpty) return;
 
     final progressNotifier = ref.read(downloadProgressProvider.notifier);
@@ -284,5 +281,16 @@ class _PostViewerState extends ConsumerState<PostViewer> {
 
   void _showDetails(BuildContext context, PostSummary post) {
     context.push('/post/${post.id}/detail', extra: post);
+  }
+}
+
+class _DownloadProgressIcon extends ConsumerWidget {
+  const _DownloadProgressIcon({required this.post});
+  final PostSummary post;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final url = post.originalUrl.isNotEmpty ? post.originalUrl : post.sampleUrl;
+    final p = ref.watch(downloadProgressProvider).where((d) => d.url == url).firstOrNull;
+    return SizedBox(width: 20, height: 20, child: CircularProgressIndicator(value: (p?.progress ?? 0) > 0 ? p!.progress : null, strokeWidth: 2, color: Colors.white));
   }
 }
