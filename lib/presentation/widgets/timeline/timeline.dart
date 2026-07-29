@@ -1,7 +1,9 @@
 import 'package:boorunova/boorus/engine/booru_repository.dart';
+import 'package:boorunova/data/repository/favorites/user_favorite_repo.dart';
 import 'package:boorunova/presentation/widgets/sliver_masonry_grid.dart';
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 
 class Timeline extends StatelessWidget {
@@ -165,7 +167,16 @@ class _PostTile extends StatelessWidget {
                           color: Colors.black26,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.favorite_border, size: 14, color: Colors.white70),
+                        child: Consumer(
+                          builder: (context, ref, _) {
+                            final isFav = ref.watch(userFavoritesRepoProvider).isFavorite(post.id);
+                            return Icon(
+                              isFav ? Icons.favorite : Icons.favorite_border,
+                              size: 14,
+                              color: isFav ? Colors.red : Colors.white70,
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),

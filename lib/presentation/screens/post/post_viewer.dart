@@ -116,6 +116,11 @@ class _PostViewerState extends ConsumerState<PostViewer> {
             onPressed: () => _share(post),
           ),
           IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: '详情',
+            onPressed: () => _showDetails(context, post),
+          ),
+          IconButton(
             icon: _saving
                 ? _DownloadProgressIcon(post: post)
                 : const Icon(Icons.download_outlined),

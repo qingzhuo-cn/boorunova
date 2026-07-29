@@ -106,8 +106,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _serverFavicon(String baseUrl, BooruType type, {double size = 16}) {
     try {
-      final uri = Uri.parse(baseUrl);
-      final faviconUrl = 'https://icons.duckduckgo.com/ip3/${uri.host}.ico';
+      final clean = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+      final faviconUrl = '$clean/favicon.ico';
       return ClipRRect(
         borderRadius: BorderRadius.circular(4),
         child: Image.network(
@@ -115,10 +115,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           width: size,
           height: size,
           errorBuilder: (_, __, ___) => _serverIcon(type, size: size),
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return _serverIcon(type, size: size);
-          },
         ),
       );
     } catch (_) {
