@@ -71,6 +71,19 @@ class _HomeContentState extends ConsumerState<HomeContent> {
     }
   }
 
+  void _checkFillViewport() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!_scrollController.hasClients) return;
+      final pos = _scrollController.position;
+      final pageState = ref.read(booruPageStateProvider);
+      if (pageState.isLoading || !pageState.hasMore) return;
+      if (pos.maxScrollExtent <= pos.viewportDimension + 100) {
+        ref.read(booruPageStateProvider.notifier).loadMore();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final pageState = ref.watch(booruPageStateProvider);
@@ -84,6 +97,10 @@ class _HomeContentState extends ConsumerState<HomeContent> {
     final filteredPosts = pageState.posts
         .where((p) => !p.tags.any(blockedNames.contains))
         .toList();
+
+    if (!pageState.isLoading && pageState.hasMore && filteredPosts.isNotEmpty) {
+      _checkFillViewport();
+    }
 
     return Column(
       children: [

@@ -92,6 +92,7 @@ class _PostViewerState extends ConsumerState<PostViewer> {
     final post = widget.posts[_currentIndex];
     final favRepo = ref.watch(userFavoritesRepoProvider);
     final isFav = favRepo.isFavorite(post.id);
+    final isVideo = _isVideoUrl(post.originalUrl) || _isVideoUrl(post.sampleUrl);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -104,10 +105,10 @@ class _PostViewerState extends ConsumerState<PostViewer> {
           style: const TextStyle(fontSize: 14),
         ),
         actions: [
-          if (widget.posts.length > 1)
+          if (widget.posts.length > 1 && !isVideo)
             IconButton(
-              icon: Icon(_slideshowPlaying ? Icons.pause : Icons.play_arrow),
-              tooltip: _slideshowPlaying ? '暂停幻灯片' : '播放幻灯片',
+              icon: Icon(_slideshowPlaying ? Icons.pause_circle_filled : Icons.auto_awesome),
+              tooltip: _slideshowPlaying ? '停止自动切换' : '自动切换',
               onPressed: _toggleSlideshow,
             ),
           IconButton(

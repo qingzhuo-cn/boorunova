@@ -27,69 +27,125 @@ class ServerPage extends ConsumerWidget {
         },
         child: const Icon(Icons.add),
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          if (servers.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: Text(
-                T.myServers,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-            ),
-            for (final s in servers)
-              _ServerTile(
-                server: s,
-                onEdit: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ServerEditorPage(serverId: s.id),
-                    ),
-                  );
-                },
-                onDelete: () => _delete(context, ref, s),
-              ),
-            const Divider(height: 32),
-          ],
-          Padding(
-            key: null,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Text(
-              T.popularSites,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
-            ),
-          ),
-          ...BooruSiteTemplate.all.map((t) {
-            final added = servers.any((s) => s.type == t.type);
-            return _TemplateTile(
-                template: t,
-              added: added,
-              onTap: () {
-                if (added) {
-                  final existing = servers.firstWhere((s) => s.type == t.type);
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ServerEditorPage(serverId: existing.id),
-                    ),
-                  );
-                } else {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ServerEditorPage(template: t),
+      body: servers.isEmpty
+          ? ListView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              children: [
+                const SizedBox(height: 100),
+                ..._buildTemplateSection(context, servers, theme),
+              ],
+            )
+          : ReorderableListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              key: const PageStorageKey('server_list'),
+              itemCount: servers.length + _templatesHeaderCount + BooruSiteTemplate.all.length,
+              onReorder: (oldIndex, newIndex) {
+                final headerOffset = 1;
+                if (oldIndex < headerOffset || newIndex < headerOffset) return;
+                final serverOld = oldIndex - headerOffset;
+                final serverNew = newIndex - headerOffset;
+                if (serverOld < servers.length && serverNew < servers.length) {
+                  ref.read(userServerRepoProvider).reorder(serverOld, serverNew);
+                  ref.invalidate(userServerRepoProvider);
+                }
+              },
+              buildDefaultDragHandles: false,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return Padding(
+                    key: const Key('server_header'),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                    child: Text(
+                      '${T.myServers}   \u2014 长按拖动排序',
+                      style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
                     ),
                   );
                 }
+                final serverIndex = index - 1;
+                if (serverIndex < servers.length) {
+                  final s = servers[serverIndex];
+                  return _ServerTile(
+                    key: ValueKey(s.id),
+                    index: index,
+                    server: s,
+                    onEdit: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => ServerEditorPage(serverId: s.id)),
+                      );
+                    },
+                    onDelete: () => _delete(context, ref, s),
+                  );
+                }
+                final templateIndex = index - 1 - servers.length - 1;
+                if (templateIndex == 0) {
+                  return Padding(
+                    key: const Key('templates_header'),
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                    child: Text(
+                      T.popularSites,
+                      style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+                    ),
+                  );
+                }
+                if (templateIndex > 0) {
+                  final t = BooruSiteTemplate.all[templateIndex - 1];
+                  final added = servers.any((s) => s.type == t.type);
+                  return _TemplateTile(
+                    key: ValueKey('tpl_${t.type.value}'),
+                    template: t,
+                    added: added,
+                    onTap: () {
+                      if (added) {
+                        final existing = servers.firstWhere((s) => s.type == t.type);
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => ServerEditorPage(serverId: existing.id)),
+                        );
+                      } else {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => ServerEditorPage(template: t)),
+                        );
+                      }
+                    },
+                  );
+                }
+                return const SizedBox.shrink();
               },
-            );
-          }),
-        ],
-      ),
+            ),
     );
+  }
+
+  static const _templatesHeaderCount = 2;
+
+  List<Widget> _buildTemplateSection(BuildContext context, List<BooruServer> servers, ThemeData theme) {
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: Text(
+          T.popularSites,
+          style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
+        ),
+      ),
+      ...BooruSiteTemplate.all.map((t) {
+        final added = servers.any((s) => s.type == t.type);
+        return _TemplateTile(
+          key: ValueKey('tpl_${t.type.value}'),
+          template: t,
+          added: added,
+          onTap: () {
+            if (added) {
+              final existing = servers.firstWhere((s) => s.type == t.type);
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => ServerEditorPage(serverId: existing.id)),
+              );
+            } else {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => ServerEditorPage(template: t)),
+              );
+            }
+          },
+        );
+      }),
+    ];
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref, BooruServer server) async {
@@ -119,30 +175,38 @@ class ServerPage extends ConsumerWidget {
 
 class _ServerTile extends StatelessWidget {
   const _ServerTile({
+    super.key,
+    required this.index,
     required this.server,
     required this.onEdit,
     required this.onDelete,
   });
 
+  final int index;
   final BooruServer server;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
-    final template = BooruSiteTemplate.findByType(server.type);
-    final icon = template?.icon ?? Icons.dns_outlined;
-    final color = template?.color ?? Colors.grey;
-
     return ListTile(
       leading: _ServerFavicon(url: server.baseUrl),
       title: Text(server.name),
       subtitle: Text(server.baseUrl, maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: PopupMenuButton<String>(
-        onSelected: (v) => v == 'edit' ? onEdit() : onDelete(),
-        itemBuilder: (_) => [
-          const PopupMenuItem(value: 'edit', child: Text(T.edit)),
-          const PopupMenuItem(value: 'delete', child: Text(T.delete)),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ReorderableDragStartListener(
+            index: index,
+            child: const Icon(Icons.drag_handle, color: Colors.grey, size: 20),
+          ),
+          PopupMenuButton<String>(
+            onSelected: (v) => v == 'edit' ? onEdit() : onDelete(),
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'edit', child: Text(T.edit)),
+              const PopupMenuItem(value: 'delete', child: Text(T.delete)),
+            ],
+          ),
         ],
       ),
     );
@@ -151,6 +215,7 @@ class _ServerTile extends StatelessWidget {
 
 class _TemplateTile extends StatelessWidget {
   const _TemplateTile({
+    super.key,
     required this.template,
     required this.added,
     required this.onTap,
