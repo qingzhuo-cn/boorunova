@@ -31,8 +31,10 @@ import 'package:go_router/go_router.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+bool _reduceAnimations = false;
+
 Page<T> _slidePage<T>(Widget child, {bool reduceAnimations = false}) {
-  final duration = reduceAnimations ? Duration.zero : const Duration(milliseconds: 300);
+  final duration = (_reduceAnimations || reduceAnimations) ? Duration.zero : const Duration(milliseconds: 300);
   return CustomTransitionPage<T>(
     child: child,
     transitionDuration: duration,
@@ -58,7 +60,7 @@ Page<T> _slidePage<T>(Widget child, {bool reduceAnimations = false}) {
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final reduce = ref.watch(settingsProvider).reduceAnimations;
+  _reduceAnimations = ref.watch(settingsProvider).reduceAnimations;
   return GoRouter(
     navigatorKey: navigatorKey,
     initialLocation: '/',
