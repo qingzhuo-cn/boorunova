@@ -91,7 +91,7 @@ class _ServerEditorPageState extends ConsumerState<ServerEditorPage> {
 
     if (mounted) {
       ref.invalidate(userServerRepoProvider);
-      context.pop();
+      Navigator.of(context).pop();
     }
   }
 
