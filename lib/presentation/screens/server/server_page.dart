@@ -135,10 +135,7 @@ class _ServerTile extends StatelessWidget {
     final color = template?.color ?? Colors.grey;
 
     return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: color.withOpacity(0.2),
-        child: Icon(icon, color: color, size: 20),
-      ),
+      leading: _ServerFavicon(url: server.baseUrl),
       title: Text(server.name),
       subtitle: Text(server.baseUrl, maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: PopupMenuButton<String>(
@@ -166,10 +163,7 @@ class _TemplateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: template.color.withOpacity(0.2),
-        child: Icon(template.icon, color: template.color, size: 20),
-      ),
+      leading: _ServerFavicon(url: template.baseUrl),
       title: Text(template.name),
       subtitle: Text(template.description ?? template.baseUrl,
           maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -180,5 +174,23 @@ class _TemplateTile extends StatelessWidget {
       ),
       onTap: onTap,
     );
+  }
+}
+
+class _ServerFavicon extends StatelessWidget {
+  const _ServerFavicon({required this.url});
+  final String url;
+  @override
+  Widget build(BuildContext context) {
+    try {
+      final uri = Uri.parse(url);
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Image.network('${uri.scheme}://${uri.host}/favicon.ico', width: 24, height: 24,
+          errorBuilder: (_, __, ___) => const Icon(Icons.public, size: 20)),
+      );
+    } catch (_) {
+      return const Icon(Icons.public, size: 20);
+    }
   }
 }
