@@ -91,22 +91,6 @@ class BooruSiteTemplate {
       color: Colors.deepOrange,
       description: 'api.rule34.xxx',
     ),
-    BooruSiteTemplate(
-      name: 'Anime-Pictures',
-      type: BooruType.animePictures,
-      baseUrl: 'https://anime-pictures.net',
-      icon: Icons.palette,
-      color: Colors.indigo,
-      description: 'anime-pictures.net',
-    ),
-    BooruSiteTemplate(
-      name: 'E-Shuushuu',
-      type: BooruType.eshuushuu,
-      baseUrl: 'https://e-shuushuu.net',
-      icon: Icons.collections,
-      color: Colors.cyan,
-      description: 'e-shuushuu.net',
-    ),
   ];
 
   static BooruSiteTemplate? findByType(BooruType type) {
