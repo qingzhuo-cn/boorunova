@@ -1,8 +1,8 @@
 # BooruNova
 
-一个基于 Flutter 的 Android Booru 客户端，灵感来源于 Boorusphere 和 Boorusama。
+一个基于 Flutter 的 Android Booru 客户端
 
-A Flutter-based booru client for Android, inspired by Boorusphere and Boorusama.
+A Flutter-based booru client for Android
 
 ---
 
