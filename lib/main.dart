@@ -1,11 +1,18 @@
 import 'package:boorunova/foundation/database/hive_setup.dart';
 import 'package:boorunova/presentation/booru_nova.dart';
+import 'package:boorunova/presentation/provider/app_version.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final packageInfo = await PackageInfo.fromPlatform();
+  final container = ProviderContainer(overrides: [
+    packageInfoProvider.overrideWithValue(packageInfo),
+  ]);
 
   await HiveSetup.init();
 
@@ -16,8 +23,9 @@ void main() async {
   ]);
 
   runApp(
-    const ProviderScope(
-      child: BooruNova(),
+    UncontrolledProviderScope(
+      container: container,
+      child: const BooruNova(),
     ),
   );
 }
