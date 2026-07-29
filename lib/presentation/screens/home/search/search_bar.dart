@@ -19,6 +19,7 @@ enum SortOption {
 }
 
 final gridColumnsProvider = StateProvider<int>((ref) => 3);
+final tagSuggestionLimitProvider = StateProvider<int>((ref) => 12);
 
 final tagSuggestionProvider =
     FutureProvider.autoDispose.family<List<String>, String>(
@@ -26,7 +27,7 @@ final tagSuggestionProvider =
     if (query.length < 1) return [];
     final repo = ref.read(booruPageStateProvider.notifier).repository;
     if (repo == null) return [];
-    return repo.suggestTags(query, limit: 12);
+    return repo.suggestTags(query, limit: ref.read(tagSuggestionLimitProvider));
   },
 );
 

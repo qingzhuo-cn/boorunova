@@ -7,17 +7,23 @@ class SearchSettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cols = ref.watch(gridColumnsProvider);
+    final limit = ref.watch(tagSuggestionLimitProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('搜索设置')),
       body: ListView(children: [
         ListTile(
           title: const Text('建议标签数量'),
-          subtitle: Text('$cols 个'),
-          trailing: SizedBox(width: 140, child: Slider(value: cols.toDouble(), min: 4, max: 20, divisions: 16, label: '$cols', onChanged: (v) => ref.read(gridColumnsProvider.notifier).state = v.round())),
+          subtitle: Text('$limit 个'),
+          trailing: SizedBox(
+            width: 140,
+            child: Slider(
+              value: limit.toDouble(), min: 4, max: 20, divisions: 16,
+              label: '$limit',
+              onChanged: (v) => ref.read(tagSuggestionLimitProvider.notifier).state = v.round(),
+            ),
+          ),
         ),
       ]),
     );
   }
 }
-

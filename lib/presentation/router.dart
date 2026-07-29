@@ -14,7 +14,6 @@ import 'package:boorunova/presentation/screens/server/server_page.dart';
 import 'package:boorunova/presentation/screens/settings/appearance_page.dart';
 import 'package:boorunova/presentation/screens/settings/about_settings_page.dart';
 import 'package:boorunova/presentation/screens/settings/booru_config_page.dart';
-import 'package:boorunova/presentation/provider/app_settings.dart';
 import 'package:boorunova/presentation/screens/settings/data_backup_page.dart';
 import 'package:boorunova/presentation/screens/settings/data_storage_page.dart';
 import 'package:boorunova/presentation/screens/settings/download_settings_page.dart';
@@ -31,10 +30,8 @@ import 'package:go_router/go_router.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-bool _reduceAnimations = false;
-
 Page<T> _slidePage<T>(Widget child, {bool reduceAnimations = false}) {
-  final duration = (_reduceAnimations || reduceAnimations) ? Duration.zero : const Duration(milliseconds: 300);
+  final duration = reduceAnimations ? Duration.zero : const Duration(milliseconds: 300);
   return CustomTransitionPage<T>(
     child: child,
     transitionDuration: duration,
@@ -60,7 +57,6 @@ Page<T> _slidePage<T>(Widget child, {bool reduceAnimations = false}) {
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
-  _reduceAnimations = ref.watch(settingsProvider).reduceAnimations;
   return GoRouter(
     navigatorKey: navigatorKey,
     initialLocation: '/',
