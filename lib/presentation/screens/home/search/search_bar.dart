@@ -31,6 +31,12 @@ final tagSuggestionProvider =
   },
 );
 
+final trendingTagsProvider = FutureProvider.autoDispose<List<String>>((ref) async {
+  final repo = ref.read(booruPageStateProvider.notifier).repository;
+  if (repo == null) return [];
+  return repo.fetchTrendingTags();
+});
+
 class HomeSearchBar extends ConsumerStatefulWidget {
   const HomeSearchBar({
     super.key,
@@ -140,6 +146,7 @@ class _HomeSearchBarState extends ConsumerState<HomeSearchBar> {
         : const AsyncData<List<String>>([]);
     final searchHistory =
         _showSearchHistory ? ref.watch(searchHistoryRepoProvider).getAll() : <String>[];
+    final trendingTags = _showSearchHistory ? ref.watch(trendingTagsProvider) : const AsyncData<List<String>>([]);
 
     return Stack(
       children: [
@@ -241,7 +248,7 @@ class _HomeSearchBarState extends ConsumerState<HomeSearchBar> {
             ),
           ],
         ),
-        if (_isOpen && (_lastQuery.length >= 1 || searchHistory.isNotEmpty))
+        if (_isOpen && (_lastQuery.length >= 1 || searchHistory.isNotEmpty || trendingTags.asData != null))
           Positioned(
             bottom: 56,
             left: 8,
@@ -342,6 +349,44 @@ class _HomeSearchBarState extends ConsumerState<HomeSearchBar> {
                         )).toList(),
                       ),
                     ],
+                    if (_lastQuery.length < 2)
+                      trendingTags.when(
+                        data: (tags) {
+                          if (tags.isEmpty) return const SizedBox.shrink();
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (searchHistory.isNotEmpty) const Divider(height: 8),
+                              Text('热门标签', style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                children: tags.map((t) => ActionChip(
+                                  label: Text(t, style: const TextStyle(fontSize: 11)),
+                                  visualDensity: VisualDensity.compact,
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  padding: EdgeInsets.zero,
+                                  labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                                  onPressed: () {
+                                    _controller.text = t;
+                                    _controller.selection = TextSelection.fromPosition(
+                                      TextPosition(offset: t.length),
+                                    );
+                                    setState(() => _lastQuery = '');
+                                  },
+                                )).toList(),
+                              ),
+                            ],
+                          );
+                        },
+                        loading: () => const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Center(child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))),
+                        ),
+                        error: (_, __) => const SizedBox.shrink(),
+                      ),
                   ],
                 ),
               ),

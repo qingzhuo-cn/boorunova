@@ -1,11 +1,12 @@
+import 'package:boorunova/presentation/provider/app_version.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const _repoUrl = 'https://github.com/qingzhuo-cn/boorunova';
 const _issuesUrl = '$_repoUrl/issues';
-const _version = '1.2.2';
 
-class AboutSettingsPage extends StatelessWidget {
+class AboutSettingsPage extends ConsumerWidget {
   const AboutSettingsPage({super.key});
 
   Future<void> _openUrl(String url) async {
@@ -16,8 +17,9 @@ class AboutSettingsPage extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
+    final version = ref.watch(appVersionProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('关于')),
@@ -29,7 +31,7 @@ class AboutSettingsPage extends StatelessWidget {
             const SizedBox(height: 12),
             const Text('BooruNova', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text('版本 $_version', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5))),
+            Text('版本 $version', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5))),
           ]),
         ),
         const SizedBox(height: 24),

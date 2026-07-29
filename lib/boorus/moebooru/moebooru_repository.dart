@@ -54,6 +54,17 @@ class MoebooruRepository extends BooruRepository {
   }
 
   @override
+  Future<List<String>> fetchTrendingTags({int limit = 20}) async {
+    final response = await _dio.get(
+      '/tag.json',
+      queryParameters: {'order': 'count', 'limit': limit},
+    );
+    final data = response.data;
+    if (data is! List) return [];
+    return MoebooruParser.parseSuggestions(data);
+  }
+
+  @override
   Future<bool> addFavorite(String postId) async {
     try {
       await _dio.post('/post/$postId/favorites.json');

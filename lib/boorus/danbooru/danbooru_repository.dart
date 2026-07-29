@@ -56,6 +56,20 @@ class DanbooruRepository extends BooruRepository {
   }
 
   @override
+  Future<List<String>> fetchTrendingTags({int limit = 20}) async {
+    final response = await _dio.get(
+      '/tags.json',
+      queryParameters: {
+        'search[order]': 'count',
+        'limit': limit,
+      },
+    );
+    final data = response.data;
+    if (data is! List) return [];
+    return DanbooruParser.parseSuggestions(data);
+  }
+
+  @override
   Future<bool> addFavorite(String postId) async {
     try {
       await _dio.post('/favorites.json', data: {'post_id': postId});

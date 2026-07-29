@@ -65,6 +65,23 @@ class GelbooruV2Repository extends BooruRepository {
   }
 
   @override
+  Future<List<String>> fetchTrendingTags({int limit = 20}) async {
+    final response = await _dio.get(
+      '/index.php',
+      queryParameters: {
+        'page': 'dapi',
+        's': 'tag',
+        'q': 'index',
+        'orderby': 'count',
+        'limit': limit,
+      },
+    );
+    final xml = response.data;
+    if (xml is! String || !xml.contains('<tag')) return [];
+    return GelbooruV2Parser.parseSuggestions(xml);
+  }
+
+  @override
   Future<bool> addFavorite(String postId) async {
     try {
       await _dio.post('/index.php', queryParameters: {

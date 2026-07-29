@@ -79,6 +79,7 @@ class PostSummary {
 abstract class BooruRepository {
   Future<BooruPageResult> searchPosts(BooruQuery query);
   Future<List<String>> suggestTags(String query, {int limit = 10});
+  Future<List<String>> fetchTrendingTags({int limit = 20}) async => [];
   Future<bool> addFavorite(String postId);
   Future<bool> removeFavorite(String postId);
   Future<bool> isFavorite(String postId);
