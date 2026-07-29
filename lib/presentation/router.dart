@@ -24,6 +24,7 @@ import 'package:boorunova/presentation/screens/settings/privacy_page.dart';
 import 'package:boorunova/presentation/screens/settings/search_settings_page.dart';
 import 'package:boorunova/presentation/screens/settings/settings_page.dart';
 import 'package:boorunova/presentation/screens/settings/viewer_settings_page.dart';
+import 'package:boorunova/presentation/screens/search/search_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -85,6 +86,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/search-history',
         name: 'search-history',
         pageBuilder: (context, state) => _slidePage(const SearchHistoryPage()),
+      ),
+      GoRoute(
+        path: '/search',
+        name: 'search',
+        pageBuilder: (context, state) => _slidePage(const SearchPage()),
       ),
       GoRoute(
         path: '/blacklist',
