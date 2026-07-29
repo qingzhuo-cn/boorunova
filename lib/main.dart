@@ -9,12 +9,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await HiveSetup.init();
+
   final packageInfo = await PackageInfo.fromPlatform();
   final container = ProviderContainer(overrides: [
-    packageInfoProvider.overrideWithValue(packageInfo),
+    appVersionProvider.overrideWith((ref) => packageInfo.version),
   ]);
-
-  await HiveSetup.init();
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
