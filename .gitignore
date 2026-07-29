@@ -26,6 +26,9 @@ flutter_*.png
 .flutter-plugins
 .flutter-plugins-dependencies
 build/
+.idea/
+*.jks
+key.properties
 .packages
 .pub/
 .pub-cache/

@@ -44,6 +44,8 @@ flutter run
 flutter build apk --release --target-platform android-arm64
 ```
 
+Or download the latest APK from [GitHub Releases](https://github.com/qingzhuo-cn/boorunova/releases).
+
 ## Configuration
 
 ### Adding a Server
