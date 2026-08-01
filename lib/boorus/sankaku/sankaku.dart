@@ -30,5 +30,5 @@ class Sankaku extends Booru {
       };
 
   @override
-  String? get loginUrl => '${baseUrl}user/login';
+  String? get loginUrl => '${baseUrl}/user/login';
 }

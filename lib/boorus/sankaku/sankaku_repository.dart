@@ -1,4 +1,4 @@
-import 'package:boorunova/boorus/engine/booru_repository.dart';
+﻿import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/boorus/sankaku/parser/sankaku_parser.dart';
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 import 'package:dio/dio.dart';
@@ -31,7 +31,7 @@ class SankakuRepository extends BooruRepository {
 
     final posts = SankakuParser.parsePosts(_serverId, data);
     return BooruPageResult(
-      posts: posts.map((p) => p.toSummary()).toList(),
+      posts: posts.map((p) => p.toSummary(_serverId)).toList(),
       hasMore: posts.length >= query.limit,
     );
   }
@@ -88,8 +88,12 @@ class SankakuRepository extends BooruRepository {
   @override
   Future<bool> isFavorite(String postId) async {
     try {
-      final response = await _dio.get('/post/$postId.json');
-      return response.data is Map;
+      final response = await _dio.get('/favorite/index.json', queryParameters: {
+        'post_id': postId,
+        'limit': 1,
+      });
+      final data = response.data;
+      return data is List && data.isNotEmpty;
     } catch (_) {
       return false;
     }
@@ -102,8 +106,9 @@ class SankakuRepository extends BooruRepository {
 }
 
 extension _SankakuPostToSummary on BooruPost {
-  PostSummary toSummary() => PostSummary(
+  PostSummary toSummary(String serverId) => PostSummary(
         id: id,
+        serverId: serverId,
         thumbnailUrl: thumbnailUrl,
         sampleUrl: sampleUrl,
         originalUrl: originalUrl,
@@ -122,3 +127,5 @@ extension _SankakuPostToSummary on BooruPost {
         postUrl: postUrl,
       );
 }
+
+

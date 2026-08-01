@@ -1,14 +1,8 @@
 import 'package:boorunova/data/repository/search_history/search_history_repo.dart';
-import 'package:boorunova/presentation/provider/booru/page_state.dart';
+import 'package:boorunova/presentation/provider/booru/trending_tags.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-final trendingTagsProvider = FutureProvider.autoDispose<List<String>>((ref) async {
-  final repo = ref.read(booruPageStateProvider.notifier).repository;
-  if (repo == null) return [];
-  return repo.fetchTrendingTags();
-});
 
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
@@ -137,7 +131,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 spacing: 8,
                 runSpacing: 8,
                 children: tags.map((t) {
-                  final ci = t.hashCode % _tagColors.length;
+                  final ci = (t.hashCode.abs() % _tagColors.length);
                   return GestureDetector(
                     onTap: () => _submit(t),
                     child: Container(

@@ -1,4 +1,4 @@
-import 'package:boorunova/boorus/engine/booru_repository.dart';
+﻿import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/boorus/zerochan/parser/zerochan_parser.dart';
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 import 'package:dio/dio.dart';
@@ -37,7 +37,7 @@ class ZerochanRepository extends BooruRepository {
         (map['pages'] as int? ?? 1) > query.page;
 
     return BooruPageResult(
-      posts: posts.map((p) => p.toSummary()).toList(),
+      posts: posts.map((p) => p.toSummary(_serverId)).toList(),
       hasMore: hasMore || (total > query.page * query.limit),
     );
   }
@@ -73,8 +73,9 @@ class ZerochanRepository extends BooruRepository {
 }
 
 extension _ZerochanPostToSummary on BooruPost {
-  PostSummary toSummary() => PostSummary(
+  PostSummary toSummary(String serverId) => PostSummary(
         id: id,
+        serverId: serverId,
         thumbnailUrl: thumbnailUrl,
         sampleUrl: sampleUrl,
         originalUrl: originalUrl,
@@ -93,3 +94,5 @@ extension _ZerochanPostToSummary on BooruPost {
         postUrl: postUrl,
       );
 }
+
+

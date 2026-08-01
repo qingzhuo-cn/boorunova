@@ -35,7 +35,7 @@ class DanbooruRepository extends BooruRepository {
     final hasMore = posts.length >= query.limit;
 
     return BooruPageResult(
-        posts: posts.map((p) => p.toSummary()).toList(), hasMore: hasMore);
+        posts: posts.map((p) => p.toSummary(_serverId)).toList(), hasMore: hasMore);
   }
 
   @override
@@ -119,8 +119,9 @@ class DanbooruRepository extends BooruRepository {
 }
 
 extension _PostToSummary on BooruPost {
-  PostSummary toSummary() => PostSummary(
+  PostSummary toSummary(String serverId) => PostSummary(
         id: id,
+        serverId: serverId,
         thumbnailUrl: thumbnailUrl,
         sampleUrl: sampleUrl,
         originalUrl: originalUrl,

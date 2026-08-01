@@ -181,6 +181,11 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await _persist();
   }
 
+  Future<void> restore(AppSettings settings) async {
+    state = settings;
+    await _persist();
+  }
+
   Future<void> _persist() async {
     await HiveSetup.settingsBox.put('app_settings', state.toJson());
   }

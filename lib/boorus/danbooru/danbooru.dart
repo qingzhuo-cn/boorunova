@@ -37,5 +37,5 @@ class Danbooru extends Booru {
       };
 
   @override
-  String? get loginUrl => '${baseUrl}login';
+  String? get loginUrl => '${baseUrl}/login';
 }

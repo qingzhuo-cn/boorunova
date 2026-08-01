@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:boorunova/data/repository/downloads/user_downloads_repo.dart';
+import 'package:boorunova/data/repository/booru/entity/post.dart';
 import 'package:boorunova/data/repository/favorites/user_favorite_repo.dart';
 import 'package:boorunova/data/repository/search_history/search_history_repo.dart';
 import 'package:boorunova/data/repository/server/entity/server.dart';
 import 'package:boorunova/data/repository/server/user_server_repo.dart';
-import 'package:boorunova/data/repository/tags_blocker/booru_tags_blocker_repo.dart';
 import 'package:boorunova/data/repository/tags_blocker/entity/booru_tag.dart';
 import 'package:boorunova/presentation/provider/app_settings.dart';
 import 'package:boorunova/presentation/provider/tags_blocker_state.dart';
@@ -78,6 +78,53 @@ class DataBackupPage extends ConsumerWidget {
         }
         ref.invalidate(tagsBlockerRepoProvider);
         ref.invalidate(tagsBlockerStateProvider);
+      }
+
+      // Import favorites
+      if (data['favorites'] != null) {
+        final list = data['favorites'] as List;
+        final repo = ref.read(userFavoritesRepoProvider);
+        final all = [...repo.getAll()];
+        for (final item in list) {
+          final post = BooruPost.fromJson(Map<String, dynamic>.from(item as Map));
+          final key = '${post.serverId}|${post.id}';
+          if (!all.any((p) => '${p.serverId}|${p.id}' == key)) {
+            all.add(post);
+          }
+        }
+        await repo.saveAll(all);
+        ref.invalidate(userFavoritesRepoProvider);
+      }
+
+      // Import search history
+      if (data['searchHistory'] != null) {
+        final list = (data['searchHistory'] as List).cast<String>();
+        final repo = ref.read(searchHistoryRepoProvider);
+        await repo.replaceAll(list);
+        ref.invalidate(searchHistoryRepoProvider);
+      }
+
+      // Import downloads
+      if (data['downloads'] != null) {
+        final list = data['downloads'] as List;
+        final repo = ref.read(userDownloadsRepoProvider);
+        final all = [...repo.getAll()];
+        for (final item in list) {
+          final entry = DownloadEntry.fromJson(Map<String, dynamic>.from(item as Map));
+          if (!all.any((d) => d.postId == entry.postId)) {
+            all.add(entry);
+          }
+        }
+        await repo.saveAll(all);
+        ref.invalidate(userDownloadsRepoProvider);
+      }
+
+      // Import settings
+      if (data['settings'] != null) {
+        await ref
+            .read(settingsProvider.notifier)
+            .restore(AppSettings.fromJson(Map<String, dynamic>.from(data['settings'] as Map)));
+        ref.invalidate(settingsProvider);
       }
 
       if (context.mounted) {

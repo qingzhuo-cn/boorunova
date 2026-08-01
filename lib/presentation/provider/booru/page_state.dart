@@ -68,7 +68,7 @@ class BooruPageNotifier extends StateNotifier<BooruPageState> {
         currentPage: 1,
       );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 

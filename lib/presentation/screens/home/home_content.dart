@@ -228,7 +228,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
                                 final post = filteredPosts[index];
                                 final repo = ref.read(userFavoritesRepoProvider);
                                 repo.toggle(BooruPost(
-                                  id: post.id, serverId: '', thumbnailUrl: post.thumbnailUrl,
+                                  id: post.id, serverId: post.serverId, thumbnailUrl: post.thumbnailUrl,
                                   sampleUrl: post.sampleUrl, originalUrl: post.originalUrl,
                                   tags: post.tags, tagGeneral: post.tagGeneral,
                                   tagArtist: post.tagArtist, tagCharacter: post.tagCharacter,
@@ -348,10 +348,10 @@ class _HomeContentState extends ConsumerState<HomeContent> {
 
     final repo = ref.read(userFavoritesRepoProvider);
     for (final post in selected) {
-      if (!repo.isFavorite(post.id)) {
+      if (!repo.isFavorite(post.id, serverId: post.serverId)) {
         await repo.toggle(BooruPost(
           id: post.id,
-          serverId: '',
+          serverId: post.serverId,
           thumbnailUrl: post.thumbnailUrl,
           sampleUrl: post.sampleUrl,
           originalUrl: post.originalUrl,

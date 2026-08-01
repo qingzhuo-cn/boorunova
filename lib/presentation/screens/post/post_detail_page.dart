@@ -123,7 +123,7 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
   Widget build(BuildContext context) {
     final post = widget.post;
     final favRepo = ref.watch(userFavoritesRepoProvider);
-    final isFav = favRepo.isFavorite(post.id);
+    final isFav = favRepo.isFavorite(post.id, serverId: post.serverId);
     final theme = Theme.of(context);
 
     final categories = <String, List<String>>{
@@ -156,7 +156,7 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
             onPressed: () async {
               final repo = ref.read(userFavoritesRepoProvider);
               await repo.toggle(BooruPost(
-                id: post.id, serverId: '', thumbnailUrl: post.thumbnailUrl,
+                id: post.id, serverId: post.serverId, thumbnailUrl: post.thumbnailUrl,
                 sampleUrl: post.sampleUrl, originalUrl: post.originalUrl,
                 tags: post.tags, tagGeneral: post.tagGeneral,
                 tagArtist: post.tagArtist, tagCharacter: post.tagCharacter,

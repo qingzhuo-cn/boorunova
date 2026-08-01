@@ -23,13 +23,17 @@ class UserFavoritesRepo {
         .toList();
   }
 
-  bool isFavorite(String postId) {
-    return getAll().any((p) => p.id == postId);
+  static String _keyFor(String postId, String serverId) => '$serverId|$postId';
+
+  bool isFavorite(String postId, {String serverId = ''}) {
+    final key = _keyFor(postId, serverId);
+    return getAll().any((p) => _keyFor(p.id, p.serverId) == key);
   }
 
   Future<void> toggle(BooruPost post) async {
     final all = getAll();
-    final existing = all.indexWhere((p) => p.id == post.id);
+    final key = _keyFor(post.id, post.serverId);
+    final existing = all.indexWhere((p) => _keyFor(p.id, p.serverId) == key);
     if (existing >= 0) {
       all.removeAt(existing);
     } else {
@@ -38,9 +42,14 @@ class UserFavoritesRepo {
     await _box.put(_key, jsonEncode(all.map((p) => p.toJson()).toList()));
   }
 
-  Future<void> remove(String postId) async {
+  Future<void> saveAll(List<BooruPost> posts) async {
+    await _box.put(_key, jsonEncode(posts.map((p) => p.toJson()).toList()));
+  }
+
+  Future<void> remove(String postId, {String serverId = ''}) async {
     final all = getAll();
-    all.removeWhere((p) => p.id == postId);
+    final key = _keyFor(postId, serverId);
+    all.removeWhere((p) => _keyFor(p.id, p.serverId) == key);
     await _box.put(_key, jsonEncode(all.map((p) => p.toJson()).toList()));
   }
 

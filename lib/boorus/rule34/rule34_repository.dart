@@ -1,4 +1,4 @@
-import 'package:boorunova/boorus/engine/booru_repository.dart';
+﻿import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/boorus/rule34/parser/rule34_parser.dart';
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 import 'package:dio/dio.dart';
@@ -35,7 +35,7 @@ class Rule34Repository extends BooruRepository {
 
     final posts = Rule34Parser.parsePosts(_serverId, data);
     return BooruPageResult(
-      posts: posts.map((p) => p.toSummary()).toList(),
+      posts: posts.map((p) => p.toSummary(_serverId)).toList(),
       hasMore: posts.length >= query.limit,
     );
   }
@@ -91,8 +91,9 @@ class Rule34Repository extends BooruRepository {
 }
 
 extension _Rule34PostToSummary on BooruPost {
-  PostSummary toSummary() => PostSummary(
+  PostSummary toSummary(String serverId) => PostSummary(
         id: id,
+        serverId: serverId,
         thumbnailUrl: thumbnailUrl,
         sampleUrl: sampleUrl,
         originalUrl: originalUrl,
@@ -111,3 +112,5 @@ extension _Rule34PostToSummary on BooruPost {
         postUrl: postUrl,
       );
 }
+
+

@@ -201,12 +201,12 @@ class _HostsPageState extends ConsumerState<HostsPage> {
           if (_dirty)
             Container(
               width: double.infinity,
-              color: Theme.of(context).colorScheme.primaryContainer,
+              color: Theme.of(context).colorScheme.tertiaryContainer,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: Text(
-                T.saved,
+                '未保存的更改',
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  color: Theme.of(context).colorScheme.onTertiaryContainer,
                   fontSize: 12,
                 ),
               ),

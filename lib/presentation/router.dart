@@ -198,18 +198,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/post/:id',
         name: 'post',
         pageBuilder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>;
-          final posts = extra['posts'] as List<PostSummary>;
-          final initialIndex = extra['initialIndex'] as int;
-          return _slidePage(PostViewer(posts: posts, initialIndex: initialIndex));
+          final extra = state.extra;
+          if (extra is Map<String, dynamic>) {
+            final posts = extra['posts'];
+            final initialIndex = extra['initialIndex'];
+            if (posts is List<PostSummary> && initialIndex is int && initialIndex >= 0 && initialIndex < posts.length) {
+              return _slidePage(PostViewer(posts: posts, initialIndex: initialIndex));
+            }
+          }
+          return _slidePage(const _InvalidRoutePage());
         },
         routes: [
           GoRoute(
             path: 'detail',
             name: 'post-detail',
             pageBuilder: (context, state) {
-              final post = state.extra as PostSummary;
-              return _slidePage(PostDetailPage(post: post));
+              final post = state.extra;
+              if (post is PostSummary) {
+                return _slidePage(PostDetailPage(post: post));
+              }
+              return _slidePage(const _InvalidRoutePage());
             },
           ),
         ],
@@ -217,3 +225,31 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+class _InvalidRoutePage extends StatelessWidget {
+  const _InvalidRoutePage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.link_off, size: 48, color: Colors.grey),
+            const SizedBox(height: 12),
+            const Text('链接无效', style: TextStyle(fontSize: 16)),
+            const SizedBox(height: 8),
+            Text('请从主页重新进入', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () => context.go('/'),
+              child: const Text('返回主页'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

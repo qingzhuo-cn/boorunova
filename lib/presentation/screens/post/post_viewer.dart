@@ -91,7 +91,7 @@ class _PostViewerState extends ConsumerState<PostViewer> {
   Widget build(BuildContext context) {
     final post = widget.posts[_currentIndex];
     final favRepo = ref.watch(userFavoritesRepoProvider);
-    final isFav = favRepo.isFavorite(post.id);
+    final isFav = favRepo.isFavorite(post.id, serverId: post.serverId);
     final isVideo = _isVideoUrl(post.originalUrl) || _isVideoUrl(post.sampleUrl);
 
     return Scaffold(
@@ -136,7 +136,7 @@ class _PostViewerState extends ConsumerState<PostViewer> {
               final repo = ref.read(userFavoritesRepoProvider);
               await repo.toggle(BooruPost(
                 id: post.id,
-                serverId: '',
+                serverId: post.serverId,
                 thumbnailUrl: post.thumbnailUrl,
                 sampleUrl: post.sampleUrl,
                 originalUrl: post.originalUrl,

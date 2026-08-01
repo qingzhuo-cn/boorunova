@@ -72,6 +72,11 @@ class UserDownloadsRepo {
     await HiveSetup.settingsBox.delete(_key);
   }
 
+  Future<void> saveAll(List<DownloadEntry> entries) async {
+    final json = entries.map((e) => e.toJson()).toList();
+    await HiveSetup.settingsBox.put(_key, jsonEncode(json));
+  }
+
   int get count => getAll().length;
 
   Future<void> _save(List<DownloadEntry> entries) async {

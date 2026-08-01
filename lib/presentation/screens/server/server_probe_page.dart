@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ServerScanPage extends ConsumerStatefulWidget {
-  const ServerScanPage({super.key});
+  const ServerScanPage({super.key, this.initialUrl = ''});
+
+  final String initialUrl;
 
   @override
   ConsumerState<ServerScanPage> createState() => _ServerScanPageState();
@@ -22,7 +24,10 @@ class _ServerScanPageState extends ConsumerState<ServerScanPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => _startScan());
+    _urlController.text = widget.initialUrl;
+    if (widget.initialUrl.isNotEmpty) {
+      Future.microtask(() => _startScan());
+    }
   }
 
   @override
@@ -172,7 +177,10 @@ class _ServerScanPageState extends ConsumerState<ServerScanPage> {
                         final url = _urlController.text.trim();
                         Navigator.of(context).pushReplacement(
                           MaterialPageRoute(
-                            builder: (_) => ServerEditorPage(initialUrl: url),
+                            builder: (_) => ServerEditorPage(
+                              initialUrl: url,
+                              initialType: _result,
+                            ),
                           ),
                         );
                       },

@@ -2,13 +2,32 @@ import 'package:boorunova/presentation/provider/tags_blocker_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class BlacklistPage extends ConsumerWidget {
+class BlacklistPage extends ConsumerStatefulWidget {
   const BlacklistPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BlacklistPage> createState() => _BlacklistPageState();
+}
+
+class _BlacklistPageState extends ConsumerState<BlacklistPage> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _addTags(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+    ref.read(tagsBlockerStateProvider.notifier).pushAll(tags: trimmed.split(RegExp(r'\s+')));
+    _controller.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final tags = ref.watch(tagsBlockerStateProvider);
-    final controller = TextEditingController();
 
     return Scaffold(
       appBar: AppBar(title: const Text('已屏蔽标签')),
@@ -16,29 +35,17 @@ class BlacklistPage extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
-            controller: controller,
+            controller: _controller,
             decoration: InputDecoration(
               labelText: '添加屏蔽标签',
               hintText: '输入标签名，多个用空格分隔',
               border: const OutlineInputBorder(),
               suffixIcon: IconButton(
                 icon: const Icon(Icons.add),
-                onPressed: () {
-                  final text = controller.text.trim();
-                  if (text.isNotEmpty) {
-                    final tags = text.split(RegExp(r'\s+'));
-                    ref.read(tagsBlockerStateProvider.notifier).pushAll(tags: tags);
-                    controller.clear();
-                  }
-                },
+                onPressed: () => _addTags(_controller.text),
               ),
             ),
-            onSubmitted: (value) {
-              if (value.trim().isNotEmpty) {
-                ref.read(tagsBlockerStateProvider.notifier).pushAll(tags: value.split(RegExp(r'\s+')));
-                controller.clear();
-              }
-            },
+            onSubmitted: _addTags,
           ),
           const SizedBox(height: 16),
           if (tags.isEmpty)

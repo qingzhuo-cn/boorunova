@@ -34,4 +34,8 @@ class SearchHistoryRepo {
   Future<void> clear() async {
     await HiveSetup.settingsBox.delete(_key);
   }
+
+  Future<void> replaceAll(List<String> items) async {
+    await HiveSetup.settingsBox.put(_key, jsonEncode(items.take(20).toList()));
+  }
 }

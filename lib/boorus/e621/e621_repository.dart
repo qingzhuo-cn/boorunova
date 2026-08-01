@@ -1,4 +1,4 @@
-import 'package:boorunova/boorus/e621/parser/e621_parser.dart';
+﻿import 'package:boorunova/boorus/e621/parser/e621_parser.dart';
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 import 'package:dio/dio.dart';
@@ -36,7 +36,7 @@ class E621Repository extends BooruRepository {
 
     final posts = E621Parser.parsePosts(_serverId, postsData);
     return BooruPageResult(
-      posts: posts.map((p) => p.toSummary()).toList(),
+      posts: posts.map((p) => p.toSummary(_serverId)).toList(),
       hasMore: posts.length >= query.limit,
     );
   }
@@ -87,13 +87,12 @@ class E621Repository extends BooruRepository {
   @override
   Future<bool> isFavorite(String postId) async {
     try {
-      final response = await _dio.get('/posts/$postId.json');
+      final response = await _dio.get('/favorites.json', queryParameters: {
+        'search[post_id]': postId,
+        'limit': 1,
+      });
       final data = response.data;
-      if (data is Map) {
-        final favs = (data['fav_count'] as int?) ?? 0;
-        return favs > 0;
-      }
-      return false;
+      return data is List && data.isNotEmpty;
     } catch (_) {
       return false;
     }
@@ -101,13 +100,23 @@ class E621Repository extends BooruRepository {
 
   @override
   Future<List<String>> getFavoriteIds() async {
-    return [];
+    try {
+      final response = await _dio.get('/favorites.json', queryParameters: {
+        'limit': 100,
+      });
+      final data = response.data;
+      if (data is! List) return [];
+      return data.map((e) => (e['post_id'] ?? e['id'])?.toString() ?? '').toList();
+    } catch (_) {
+      return [];
+    }
   }
 }
 
 extension _E621PostToSummary on BooruPost {
-  PostSummary toSummary() => PostSummary(
+  PostSummary toSummary(String serverId) => PostSummary(
         id: id,
+        serverId: serverId,
         thumbnailUrl: thumbnailUrl,
         sampleUrl: sampleUrl,
         originalUrl: originalUrl,
@@ -126,3 +135,5 @@ extension _E621PostToSummary on BooruPost {
         postUrl: postUrl,
       );
 }
+
+

@@ -74,8 +74,15 @@ class _HomePageState extends ConsumerState<HomePage> {
         notifier.search('');
       }
     } catch (e) {
+      final template = BooruSiteTemplate.findByType(server.type);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${T.engineNotAvailable}$e')),
+        SnackBar(
+          content: Text(
+            template != null
+                ? '${template.name} 引擎不可用，请更换服务器或修改引擎类型'
+                : '引擎不可用：${server.type.value}',
+          ),
+        ),
       );
     }
   }

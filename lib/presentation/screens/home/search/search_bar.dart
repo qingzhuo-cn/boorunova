@@ -4,6 +4,7 @@ import 'package:boorunova/data/repository/search_history/search_history_repo.dar
 import 'package:boorunova/presentation/l10n/app_strings.dart';
 import 'package:boorunova/presentation/provider/app_settings.dart';
 import 'package:boorunova/presentation/provider/booru/page_state.dart';
+import 'package:boorunova/presentation/provider/booru/trending_tags.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -30,12 +31,6 @@ final tagSuggestionProvider =
     return repo.suggestTags(query, limit: ref.read(tagSuggestionLimitProvider));
   },
 );
-
-final trendingTagsProvider = FutureProvider.autoDispose<List<String>>((ref) async {
-  final repo = ref.read(booruPageStateProvider.notifier).repository;
-  if (repo == null) return [];
-  return repo.fetchTrendingTags();
-});
 
 class HomeSearchBar extends ConsumerStatefulWidget {
   const HomeSearchBar({

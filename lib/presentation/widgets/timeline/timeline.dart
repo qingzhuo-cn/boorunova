@@ -169,7 +169,7 @@ class _PostTile extends StatelessWidget {
                         ),
                         child: Consumer(
                           builder: (context, ref, _) {
-                            final isFav = ref.watch(userFavoritesRepoProvider).isFavorite(post.id);
+                            final isFav = ref.watch(userFavoritesRepoProvider).isFavorite(post.id, serverId: post.serverId);
                             return Icon(
                               isFav ? Icons.favorite : Icons.favorite_border,
                               size: 14,

@@ -48,6 +48,7 @@ class PostSummary {
     required this.height,
     required this.rating,
     required this.score,
+    this.serverId = '',
     this.source,
     this.postUrl,
     this.tagGeneral = const [],
@@ -67,6 +68,7 @@ class PostSummary {
   final int height;
   final String rating;
   final int score;
+  final String serverId;
   final String? source;
   final String? postUrl;
   final List<String> tagGeneral;
