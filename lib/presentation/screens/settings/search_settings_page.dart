@@ -1,4 +1,4 @@
-import 'package:boorunova/presentation/screens/home/search/search_bar.dart';
+import 'package:boorunova/presentation/provider/booru/tag_suggestions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
