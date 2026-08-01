@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/data/repository/booru/entity/post.dart';
@@ -108,7 +108,7 @@ class _PostViewerState extends ConsumerState<PostViewer> {
           if (widget.posts.length > 1 && !isVideo)
             IconButton(
               icon: Icon(_slideshowPlaying ? Icons.pause_circle_filled : Icons.auto_awesome),
-              tooltip: _slideshowPlaying ? '停止自动切换' : '自动切换',
+              tooltip: _slideshowPlaying ? '鍋滄鑷姩鍒囨崲' : '鑷姩鍒囨崲',
               onPressed: _toggleSlideshow,
             ),
           IconButton(
@@ -118,7 +118,7 @@ class _PostViewerState extends ConsumerState<PostViewer> {
           ),
           IconButton(
             icon: const Icon(Icons.info_outline),
-            tooltip: '详情',
+            tooltip: '璇︽儏',
             onPressed: () => _showDetails(context, post),
           ),
           IconButton(
@@ -190,7 +190,7 @@ class _PostViewerState extends ConsumerState<PostViewer> {
             if (isVideo) {
               return Center(
                 child: Hero(
-                  tag: 'post_${p.id}',
+                  tag: 'post_${p.serverId}_${p.id}',
                   child: VideoViewer(url: url),
                 ),
               );
@@ -207,7 +207,7 @@ class _PostViewerState extends ConsumerState<PostViewer> {
                 maxScale: 5.0,
               child: Center(
                 child: Hero(
-                  tag: 'post_${p.id}',
+                  tag: 'post_${p.serverId}_${p.id}',
                   child: ExtendedImage.network(
                           url,
                           fit: BoxFit.contain,
@@ -305,3 +305,4 @@ class _DownloadProgressIcon extends ConsumerWidget {
     return SizedBox(width: 20, height: 20, child: CircularProgressIndicator(value: (p?.progress ?? 0) > 0 ? p!.progress : null, strokeWidth: 2, color: Colors.white));
   }
 }
+

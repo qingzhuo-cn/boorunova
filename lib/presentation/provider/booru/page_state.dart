@@ -47,6 +47,27 @@ class BooruPageNotifier extends StateNotifier<BooruPageState> {
     _repo = repo;
   }
 
+  Future<void> switchServer(BooruRepository repo) async {
+    _repo = repo;
+    // 保留旧帖子直到新数据到达，避免闪空+转圈
+    state = state.copyWith(isLoading: true, error: null, currentPage: 1);
+    try {
+      final result = await repo.searchPosts(BooruQuery(
+        tags: _currentQuery,
+        page: 1,
+        rating: _currentRating,
+      ));
+      state = state.copyWith(
+        posts: result.posts,
+        isLoading: false,
+        hasMore: result.hasMore,
+        currentPage: 1,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
   Future<void> search(String query, {String? rating}) async {
     if (_repo == null) {
       state = state.copyWith(isLoading: false, error: '未选择服务器');

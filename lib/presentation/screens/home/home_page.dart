@@ -1,4 +1,5 @@
 import 'package:boorunova/boorus/engine/booru_capabilities.dart';
+import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/boorus/engine/booru_type.dart';
 import 'package:boorunova/boorus/engine/registry.dart';
 import 'package:boorunova/data/repository/server/entity/server.dart';
@@ -21,6 +22,8 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   BooruServer? _activeServer;
+  final Map<String, BooruRepository> _repoCache = {};
+  static final Set<String> _failedFavicons = {};
 
   @override
   void initState() {
@@ -58,20 +61,24 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _selectServer(BooruServer server) {
+    if (server.id == _activeServer?.id) return;
     setState(() => _activeServer = server);
     final registry = ref.read(booruRegistryProvider);
     try {
-      final repo = registry.createRepository(
-        server.type,
-        baseUrl: server.baseUrl,
-        serverId: server.id,
-        login: server.login,
-        apiKey: server.apiKey,
-      );
+      final repo = _repoCache[server.id] ??
+          registry.createRepository(
+            server.type,
+            baseUrl: server.baseUrl,
+            serverId: server.id,
+            login: server.login,
+            apiKey: server.apiKey,
+          );
+      _repoCache[server.id] = repo;
       final notifier = ref.read(booruPageStateProvider.notifier);
-      notifier.setRepository(repo);
       if (notifier.currentQuery.isEmpty) {
-        notifier.search('');
+        notifier.switchServer(repo);
+      } else {
+        notifier.setRepository(repo);
       }
     } catch (e) {
       final template = BooruSiteTemplate.findByType(server.type);
@@ -115,13 +122,19 @@ class _HomePageState extends ConsumerState<HomePage> {
     try {
       final clean = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
       final faviconUrl = '$clean/favicon.ico';
+      if (_failedFavicons.contains(faviconUrl)) {
+        return _serverIcon(type, size: size);
+      }
       return ClipRRect(
         borderRadius: BorderRadius.circular(4),
         child: Image.network(
           faviconUrl,
           width: size,
           height: size,
-          errorBuilder: (_, __, ___) => _serverIcon(type, size: size),
+          errorBuilder: (_, __, ___) {
+            _failedFavicons.add(faviconUrl);
+            return _serverIcon(type, size: size);
+          },
         ),
       );
     } catch (_) {

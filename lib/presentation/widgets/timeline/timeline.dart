@@ -129,7 +129,9 @@ class _PostTile extends StatelessWidget {
       onTap: selectionMode ? onSelectionToggle : onTap,
       onLongPress: onLongPress,
       child: Hero(
-        tag: selectionMode ? 'post_${post.id}_batch' : 'post_${post.id}',
+        tag: selectionMode
+            ? 'post_${post.serverId}_${post.id}_batch'
+            : 'post_${post.serverId}_${post.id}',
         child: ClipRRect(
           borderRadius: BorderRadius.circular(6),
           child: AspectRatio(
