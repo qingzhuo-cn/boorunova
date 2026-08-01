@@ -15,10 +15,15 @@ class SankakuRepository extends BooruRepository {
 
   @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
+    final tags = <String>[
+      if (query.tags.isNotEmpty) query.tags,
+      if (query.rating != null) 'rating:${query.rating}',
+    ].join(' ');
+
     final response = await _dio.get(
       '/post/index.json',
       queryParameters: {
-        'tags': query.tags,
+        'tags': tags,
         'page': query.page,
         'limit': query.limit,
       },
