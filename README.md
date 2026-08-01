@@ -1,59 +1,72 @@
 # BooruNova
 
-一个基于 Flutter 的 Android Booru 客户端
+BooruNova 是一个开源的 Android Booru 图库客户端，支持 Danbooru、Gelbooru、Safebooru、Moebooru、e621、Sankaku、Zerochan、Rule34 等主流站点。
 
-A Flutter-based booru client for Android
+BooruNova is an open-source Android client for booru image boards, supporting Danbooru, Gelbooru, Safebooru, Moebooru, e621, Sankaku, Zerochan, Rule34, and more.
 
----
+## 功能特性 / Features
 
-## Features
+### 浏览与查看 / Browsing
 
-- **Multi-server Support** — Danbooru, Gelbooru, Safebooru, Moebooru, e621, Sankaku, Zerochan, Rule34, etc.
-- **Server Management** — Add/edit/delete servers, auto-detect engine type, preset templates
-- **Post Timeline** — Masonry grid layout with adjustable columns (2-6), staggered entry animations
-- **Post Viewer** — Full-screen image viewer with pinch-to-zoom, slideshow, swipe navigation
-- **Post Details** — Categorized tags (artist/character/copyright/general/meta), multi-select, SpeedDial FAB
-- **Search** — Bottom search bar with autocomplete, trending tags from site, search history
-- **Favorites & Downloads** — Save posts to favorites, download images to gallery
-- **Tags Blocker** — Block unwanted tags from timeline
-- **Hosts** — Custom domain-to-IP mapping for network-restricted environments
-- **Gesture Controls** — Configurable swipe/tap/double-tap/long-press actions
-- **Themes** — Light/dark/midnight modes with accent color picker
-- **Navigation** — Left drawer (favorites/downloads/servers/settings), right drawer
-- **Chinese UI** — Full Chinese language interface
+- 多服务器支持，一个应用浏览所有站点
+- 瀑布流时间线，可调列数（2-6 列）
+- 全屏查看器：双指缩放、滑动切换、自动播放
+- 帖子详情：画师/角色/版权/通用标签分类展示
+- Multi-server support — browse every site in one app
+- Masonry grid timeline with adjustable columns (2-6)
+- Full-screen viewer: pinch-zoom, swipe navigation, slideshow
+- Post details with categorized tags (artist/character/copyright/general)
 
-## 功能特点
+### 搜索 / Search
 
-- **多服务器支持** — Danbooru、Gelbooru、Safebooru、Moebooru、e621、Sankaku、Zerochan、Rule34 等
-- **服务器管理** — 添加/编辑/删除服务器，自动检测引擎类型，内置模板快速添加
-- **帖子时间线** — 瀑布流布局，可调节列数（2-6），交错入场动画
-- **查看器** — 全屏图片浏览，双指缩放，幻灯片模式，滑动切换
-- **帖子详情** — 分类标签（画师/角色/版权/通用/元数据），多选，SpeedDial 操作按钮
-- **搜索** — 底部搜索栏，标签自动补全，站点热门标签，搜索历史
-- **收藏与下载** — 收藏帖子，下载图片到相册
-- **标签屏蔽** — 屏蔽不想要的标签，管理黑名单
-- **Hosts** — 自定义域名到 IP 映射，适用于网络受限环境
-- **手势控制** — 可配置滑动/点击/双击/长按动作
-- **主题** — 浅色/深色/午夜模式，强调色自定义
-- **导航** — 左侧抽屉（收藏/下载/服务器/设置），右侧抽屉
-- **中文界面** — 完整中文语言界面
+- 标签自动补全建议
+- 各站点热门标签推荐
+- 搜索历史管理（最近 20 条）
+- Tag autocomplete suggestions
+- Trending tags from the current site
+- Search history (last 20 entries)
 
----
+### 收藏与下载 / Favorites & Downloads
 
-## Screenshots / 截图
+- 收藏帖子，跨服务器独立管理
+- 下载到系统相册，支持预览图/原图切换
+- 批量收藏、批量下载、批量分享
+- Favorite posts with per-server tracking
+- Download to gallery with sample/original quality toggle
+- Batch favorite, download, and share
 
-Coming soon / 即将添加
+### 个性化 / Personalization
 
----
+- 标签屏蔽（黑名单）
+- 浅色/深色/午夜主题，自定义强调色
+- 可配置手势（滑动/点击/长按）
+- Hosts 域名映射，应对网络受限环境
+- Tag blocking (blacklist)
+- Light/dark/midnight themes with custom accent colors
+- Configurable gestures (swipe/tap/long-press)
+- Custom Hosts domain mapping for restricted networks
 
-## Getting Started / 快速开始
+### 数据管理 / Data Management
 
-### Prerequisites / 环境要求
+- 完整备份/恢复（服务器、收藏、历史、设置等 6 类数据）
+- 缓存清理
+- Full backup/restore (servers, favorites, history, settings, etc.)
+- Cache management
 
-- Flutter SDK >=3.0.3
+## 下载 / Download
+
+从 [GitHub Releases](https://github.com/qingzhuo-cn/boorunova/releases) 下载最新 APK。
+
+Download the latest APK from [GitHub Releases](https://github.com/qingzhuo-cn/boorunova/releases).
+
+## 快速开始 / Getting Started
+
+### 环境要求 / Prerequisites
+
+- Flutter SDK >= 3.0.3
 - Android SDK
 
-### Installation / 安装运行
+### 安装 / Installation
 
 ```bash
 git clone https://github.com/qingzhuo-cn/boorunova.git
@@ -62,33 +75,41 @@ flutter pub get
 flutter run
 ```
 
-### Build Release APK / 构建
+### 构建 Release / Build
 
 ```bash
 flutter build apk --release --target-platform android-arm64
 ```
 
-Or download the latest APK from [GitHub Releases](https://github.com/qingzhuo-cn/boorunova/releases) / 或从 [GitHub Releases](https://github.com/qingzhuo-cn/boorunova/releases) 直接下载。
+## 使用说明 / Usage
 
----
+### 添加服务器 / Adding a Server
 
-## Configuration / 配置说明
+1. 在「服务器」页面点击 **+** 按钮
+2. 输入站点地址（如 `https://safebooru.org`）
+3. 点击「探测」自动匹配引擎类型
+4. 确认引擎类型，填写名称后保存
+5. Tap **+** on the Servers page, enter a site URL, tap **探测** to auto-detect the engine, then save.
 
-### Adding a Server / 添加服务器
+### 排序服务器 / Reordering Servers
 
-1. Tap **+** FAB on the Servers page / 在服务器页面点击 **+** 悬浮按钮
-2. Enter site URL (e.g. `https://safebooru.org`) / 输入站点地址
-3. Tap **检测引擎** (Detect Engine) / 点击检测引擎自动识别
-4. Name and save / 填写名称后保存
+在服务器页右上角点击排序按钮，进入拖拽排序模式。
 
-### Hosts
+Tap the sort button in the top-right corner of the Servers page to enter drag-reorder mode.
 
-For restricted networks, add rules in **Settings → Hosts** or import a hosts file.
+## 支持站点 / Supported Sites
 
-网络受限环境下，在 **设置 → Hosts** 中添加规则或导入 hosts 文件。
+| 引擎 | 站点示例 |
+|------|----------|
+| Danbooru | danbooru.donmai.us |
+| Gelbooru | gelbooru.com |
+| Moebooru | yande.re / konachan.com |
+| Safebooru | safebooru.org |
+| e621 | e621.net |
+| Sankaku | chan.sankakucomplex.com |
+| Zerochan | zerochan.net |
+| Rule34 | rule34.xxx |
 
----
-
-## License / 开源协议
+## 开源协议 / License
 
 MIT License
