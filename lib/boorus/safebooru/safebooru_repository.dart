@@ -15,13 +15,24 @@ class SafebooruRepository extends BooruRepository {
 
   @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
+    final tags = <String>[
+      if (query.tags.isNotEmpty) query.tags,
+      if (query.rating != null)
+        switch (query.rating!) {
+          's' => 'rating:safe',
+          'q' => 'rating:questionable',
+          'e' => 'rating:explicit',
+          _ => 'rating:${query.rating}',
+        },
+    ].join(' ');
+
     final response = await _dio.get(
       '/index.php',
       queryParameters: {
         'page': 'dapi',
         's': 'post',
         'q': 'index',
-        'tags': query.tags,
+        'tags': tags,
         'pid': query.page - 1,
         'limit': query.limit,
       },

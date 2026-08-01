@@ -15,13 +15,23 @@ class MoebooruRepository extends BooruRepository {
 
   @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
+    final tags = <String>[
+      if (query.tags.isNotEmpty) query.tags,
+      if (query.rating != null)
+        switch (query.rating!) {
+          's' => 'rating:safe',
+          'q' => 'rating:questionable',
+          'e' => 'rating:explicit',
+          _ => 'rating:${query.rating}',
+        },
+    ].join(' ');
+
     final response = await _dio.get(
       '/post.json',
       queryParameters: {
-        'tags': query.tags,
+        'tags': tags,
         'page': query.page,
         'limit': query.limit,
-        if (query.rating != null) 'rating': query.rating,
       },
     );
 
