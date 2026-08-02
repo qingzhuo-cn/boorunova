@@ -1,4 +1,5 @@
 import 'package:boorunova/data/repository/hosts/user_hosts_repo.dart';
+import 'package:boorunova/foundation/database/hive_setup.dart';
 import 'package:dio/dio.dart';
 
 class HostsInterceptor extends Interceptor {
@@ -8,9 +9,20 @@ class HostsInterceptor extends Interceptor {
   final UserHostsRepo _repo;
   bool enabled;
 
+  bool get _isActive {
+    if (enabled) return true;
+    try {
+      final raw = HiveSetup.settingsBox.get('app_settings');
+      if (raw is Map) {
+        return raw['hostsEnabled'] == true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    if (!enabled) return handler.next(options);
+    if (!_isActive) return handler.next(options);
 
     final url = options.baseUrl.isNotEmpty
         ? Uri.tryParse(options.baseUrl)

@@ -97,7 +97,7 @@ class _FavoriteDetailSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isFav = repo.isFavorite(post.id);
+    final isFav = repo.isFavorite(post.id, serverId: post.serverId);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       child: Column(

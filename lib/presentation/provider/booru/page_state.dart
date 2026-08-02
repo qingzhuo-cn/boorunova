@@ -39,16 +39,14 @@ class BooruPageNotifier extends StateNotifier<BooruPageState> {
   BooruRepository? _repo;
   String _currentQuery = '';
   String? _currentRating;
+  int _requestSeq = 0;
 
   BooruRepository? get repository => _repo;
   String get currentQuery => _currentQuery;
 
-  void setRepository(BooruRepository repo) {
-    _repo = repo;
-  }
-
   Future<void> switchServer(BooruRepository repo) async {
     _repo = repo;
+    final seq = ++_requestSeq;
     // 保留旧帖子直到新数据到达，避免闪空+转圈
     state = state.copyWith(isLoading: true, error: null, currentPage: 1);
     try {
@@ -57,6 +55,7 @@ class BooruPageNotifier extends StateNotifier<BooruPageState> {
         page: 1,
         rating: _currentRating,
       ));
+      if (seq != _requestSeq) return;
       state = state.copyWith(
         posts: result.posts,
         isLoading: false,
@@ -64,6 +63,7 @@ class BooruPageNotifier extends StateNotifier<BooruPageState> {
         currentPage: 1,
       );
     } catch (e) {
+      if (seq != _requestSeq) return;
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
@@ -75,6 +75,7 @@ class BooruPageNotifier extends StateNotifier<BooruPageState> {
     }
     _currentQuery = query;
     _currentRating = rating;
+    final seq = ++_requestSeq;
     state = state.copyWith(posts: const [], isLoading: true, error: null, currentPage: 1);
     try {
       final result = await _repo!.searchPosts(BooruQuery(
@@ -82,6 +83,7 @@ class BooruPageNotifier extends StateNotifier<BooruPageState> {
         page: 1,
         rating: rating,
       ));
+      if (seq != _requestSeq) return;
       state = state.copyWith(
         posts: result.posts,
         isLoading: false,
@@ -89,6 +91,7 @@ class BooruPageNotifier extends StateNotifier<BooruPageState> {
         currentPage: 1,
       );
     } catch (e) {
+      if (seq != _requestSeq) return;
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
@@ -99,6 +102,7 @@ class BooruPageNotifier extends StateNotifier<BooruPageState> {
 
   Future<void> loadMore() async {
     if (_repo == null || state.isLoading || !state.hasMore) return;
+    final seq = ++_requestSeq;
     final nextPage = state.currentPage + 1;
     state = state.copyWith(isLoading: true);
     try {
@@ -107,6 +111,7 @@ class BooruPageNotifier extends StateNotifier<BooruPageState> {
         page: nextPage,
         rating: _currentRating,
       ));
+      if (seq != _requestSeq) return;
       state = state.copyWith(
         posts: [...state.posts, ...result.posts],
         isLoading: false,
@@ -114,6 +119,7 @@ class BooruPageNotifier extends StateNotifier<BooruPageState> {
         currentPage: nextPage,
       );
     } catch (e) {
+      if (seq != _requestSeq) return;
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }

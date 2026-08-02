@@ -75,11 +75,8 @@ class _HomePageState extends ConsumerState<HomePage> {
           );
       _repoCache[server.id] = repo;
       final notifier = ref.read(booruPageStateProvider.notifier);
-      if (notifier.currentQuery.isEmpty) {
-        notifier.switchServer(repo);
-      } else {
-        notifier.setRepository(repo);
-      }
+      // 有搜索词时也重新加载（保留旧内容），避免显示旧服务器帖子
+      notifier.switchServer(repo);
     } catch (e) {
       final template = BooruSiteTemplate.findByType(server.type);
       ScaffoldMessenger.of(context).showSnackBar(

@@ -11,6 +11,7 @@ final userHistoryRepoProvider = Provider<UserHistoryRepo>((ref) {
 class HistoryEntry {
   const HistoryEntry({
     required this.postId,
+    this.serverId = '',
     required this.thumbnailUrl,
     required this.sampleUrl,
     required this.originalUrl,
@@ -24,6 +25,7 @@ class HistoryEntry {
 
   factory HistoryEntry.fromPost(PostSummary post) => HistoryEntry(
         postId: post.id,
+        serverId: post.serverId,
         thumbnailUrl: post.thumbnailUrl,
         sampleUrl: post.sampleUrl,
         originalUrl: post.originalUrl,
@@ -36,19 +38,23 @@ class HistoryEntry {
       );
 
   factory HistoryEntry.fromJson(Map<String, dynamic> json) => HistoryEntry(
-        postId: json['postId'] as String,
-        thumbnailUrl: json['thumbnailUrl'] as String,
-        sampleUrl: json['sampleUrl'] as String,
-        originalUrl: json['originalUrl'] as String,
-        tags: List<String>.from(json['tags'] as List),
-        width: json['width'] as int,
-        height: json['height'] as int,
-        rating: json['rating'] as String,
-        score: json['score'] as int,
-        viewedAt: DateTime.parse(json['viewedAt'] as String),
+        postId: json['postId']?.toString() ?? '',
+        serverId: json['serverId']?.toString() ?? '',
+        thumbnailUrl: json['thumbnailUrl']?.toString() ?? '',
+        sampleUrl: json['sampleUrl']?.toString() ?? '',
+        originalUrl: json['originalUrl']?.toString() ?? '',
+        tags: json['tags'] is List ? List<String>.from(json['tags'] as List) : [],
+        width: json['width'] is int ? json['width'] as int : 0,
+        height: json['height'] is int ? json['height'] as int : 0,
+        rating: json['rating']?.toString() ?? 'q',
+        score: json['score'] is int ? json['score'] as int : 0,
+        viewedAt: json['viewedAt'] != null
+            ? DateTime.tryParse(json['viewedAt'].toString()) ?? DateTime.now()
+            : DateTime.now(),
       );
 
   final String postId;
+  final String serverId;
   final String thumbnailUrl;
   final String sampleUrl;
   final String originalUrl;
@@ -61,6 +67,7 @@ class HistoryEntry {
 
   Map<String, dynamic> toJson() => {
         'postId': postId,
+        'serverId': serverId,
         'thumbnailUrl': thumbnailUrl,
         'sampleUrl': sampleUrl,
         'originalUrl': originalUrl,
@@ -87,7 +94,7 @@ class UserHistoryRepo {
 
   Future<void> add(PostSummary post) async {
     final all = getAll();
-    all.removeWhere((e) => e.postId == post.id);
+    all.removeWhere((e) => e.postId == post.id && e.serverId == post.serverId);
     all.insert(0, HistoryEntry.fromPost(post));
     if (all.length > 200) all.removeRange(200, all.length);
     await _save(all);

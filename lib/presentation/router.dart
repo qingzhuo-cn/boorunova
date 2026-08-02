@@ -9,7 +9,6 @@ import 'package:boorunova/presentation/screens/history/search_history_page.dart'
 import 'package:boorunova/presentation/screens/home/home_page.dart';
 import 'package:boorunova/presentation/screens/post/post_detail_page.dart';
 import 'package:boorunova/presentation/screens/post/post_viewer.dart';
-import 'package:boorunova/presentation/screens/server/server_editor_page.dart';
 import 'package:boorunova/presentation/screens/server/server_page.dart';
 import 'package:boorunova/presentation/screens/settings/appearance_page.dart';
 import 'package:boorunova/presentation/screens/settings/about_settings_page.dart';
@@ -178,21 +177,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/servers',
         name: 'servers',
         pageBuilder: (context, state) => _slidePage(const ServerPage()),
-        routes: [
-          GoRoute(
-            path: 'add',
-            name: 'server-add',
-            pageBuilder: (context, state) => _slidePage(const ServerEditorPage()),
-          ),
-          GoRoute(
-            path: ':id/edit',
-            name: 'server-edit',
-            pageBuilder: (context, state) {
-              final id = state.pathParameters['id']!;
-              return _slidePage(ServerEditorPage(serverId: id));
-            },
-          ),
-        ],
       ),
       GoRoute(
         path: '/post/:id',

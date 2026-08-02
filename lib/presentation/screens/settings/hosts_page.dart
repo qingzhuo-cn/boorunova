@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:boorunova/data/repository/hosts/entity/host_entry.dart';
 import 'package:boorunova/data/repository/hosts/user_hosts_repo.dart';
 import 'package:boorunova/presentation/l10n/app_strings.dart';
+import 'package:boorunova/presentation/provider/app_settings.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -178,6 +179,19 @@ class _HostsPageState extends ConsumerState<HostsPage> {
       appBar: AppBar(
         title: const Text(T.hostsTitle),
         actions: [
+          Consumer(
+            builder: (context, ref, _) {
+              final enabled = ref.watch(settingsProvider).hostsEnabled;
+              return IconButton(
+                icon: Icon(enabled ? Icons.power_settings_new : Icons.power_settings_new_outlined,
+                    color: enabled ? Colors.green : null),
+                tooltip: enabled ? 'Hosts 已启用' : 'Hosts 未启用',
+                onPressed: () {
+                  ref.read(settingsProvider.notifier).setHostsEnabled(!enabled);
+                },
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: T.addHost,

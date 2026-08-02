@@ -17,7 +17,13 @@ class E621Repository extends BooruRepository {
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
     final tags = <String>[
       if (query.tags.isNotEmpty) query.tags,
-      if (query.rating != null) 'rating:${query.rating}',
+      if (query.rating != null)
+        switch (query.rating!) {
+          's' => 'rating:safe',
+          'q' => 'rating:questionable',
+          'e' => 'rating:explicit',
+          _ => 'rating:${query.rating}',
+        },
     ].join(' ');
 
     final response = await _dio.get(
@@ -48,7 +54,28 @@ class E621Repository extends BooruRepository {
 
   @override
   Future<List<String>> suggestTags(String query, {int limit = 10}) async {
-    return [];
+    if (query.isEmpty) return [];
+    try {
+      final response = await _dio.get(
+        '/tags.json',
+        queryParameters: {
+          'search[name_matches]': '*${query.toLowerCase()}*',
+          'search[order]': 'count',
+          'limit': limit,
+        },
+      );
+      final data = response.data;
+      if (data is! Map) return [];
+      final tags = data['tags'];
+      if (tags is! List) return [];
+      return tags
+          .whereType<Map<String, dynamic>>()
+          .map((t) => (t['name'] as String?) ?? '')
+          .where((n) => n.isNotEmpty)
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   @override
