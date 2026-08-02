@@ -1,31 +1,23 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:boorunova/boorus/danbooru/danbooru.dart';
-import 'package:boorunova/boorus/danbooru/danbooru_builder.dart';
 import 'package:boorunova/boorus/danbooru/danbooru_repository.dart';
 import 'package:boorunova/boorus/e621/e621.dart';
-import 'package:boorunova/boorus/e621/e621_builder.dart';
 import 'package:boorunova/boorus/e621/e621_repository.dart';
 import 'package:boorunova/boorus/engine/booru_engine.dart';
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/boorus/engine/booru_type.dart';
 import 'package:boorunova/boorus/gelbooru_v2/gelbooru_v2.dart';
-import 'package:boorunova/boorus/gelbooru_v2/gelbooru_v2_builder.dart';
 import 'package:boorunova/boorus/gelbooru_v2/gelbooru_v2_repository.dart';
 import 'package:boorunova/boorus/moebooru/moebooru.dart';
-import 'package:boorunova/boorus/moebooru/moebooru_builder.dart';
 import 'package:boorunova/boorus/moebooru/moebooru_repository.dart';
 import 'package:boorunova/boorus/rule34/rule34.dart';
-import 'package:boorunova/boorus/rule34/rule34_builder.dart';
 import 'package:boorunova/boorus/rule34/rule34_repository.dart';
 import 'package:boorunova/boorus/safebooru/safebooru.dart';
-import 'package:boorunova/boorus/safebooru/safebooru_builder.dart';
 import 'package:boorunova/boorus/safebooru/safebooru_repository.dart';
 import 'package:boorunova/boorus/sankaku/sankaku.dart';
-import 'package:boorunova/boorus/sankaku/sankaku_builder.dart';
 import 'package:boorunova/boorus/sankaku/sankaku_repository.dart';
 import 'package:boorunova/boorus/zerochan/zerochan.dart';
-import 'package:boorunova/boorus/zerochan/zerochan_builder.dart';
 import 'package:boorunova/boorus/zerochan/zerochan_repository.dart';
 import 'package:boorunova/data/repository/hosts/user_hosts_repo.dart';
 import 'package:boorunova/foundation/network/hosts_interceptor.dart';
@@ -50,56 +42,48 @@ void _registerDefaults(BooruRegistry registry) {
         booru: const Danbooru(),
         repositoryFactory: (dio, {serverId}) =>
             DanbooruRepository(dio: dio, serverId: serverId ?? 'danbooru'),
-        builderFactory: DanbooruBuilder.new,
       ));
 
   registry.register(BooruType.gelbooruV2, () => BooruEngine(
         booru: const GelbooruV2(),
         repositoryFactory: (dio, {serverId}) => GelbooruV2Repository(
             dio: dio, serverId: serverId ?? 'gelbooru_v2'),
-        builderFactory: GelbooruV2Builder.new,
       ));
 
   registry.register(BooruType.moebooru, () => BooruEngine(
         booru: const Moebooru(),
         repositoryFactory: (dio, {serverId}) =>
             MoebooruRepository(dio: dio, serverId: serverId ?? 'moebooru'),
-        builderFactory: MoebooruBuilder.new,
       ));
 
   registry.register(BooruType.e621, () => BooruEngine(
         booru: const E621(),
         repositoryFactory: (dio, {serverId}) =>
             E621Repository(dio: dio, serverId: serverId ?? 'e621'),
-        builderFactory: E621Builder.new,
       ));
 
   registry.register(BooruType.sankaku, () => BooruEngine(
         booru: const Sankaku(),
         repositoryFactory: (dio, {serverId}) =>
             SankakuRepository(dio: dio, serverId: serverId ?? 'sankaku'),
-        builderFactory: SankakuBuilder.new,
       ));
 
   registry.register(BooruType.zerochan, () => BooruEngine(
         booru: const Zerochan(),
         repositoryFactory: (dio, {serverId}) =>
             ZerochanRepository(dio: dio, serverId: serverId ?? 'zerochan'),
-        builderFactory: ZerochanBuilder.new,
       ));
 
   registry.register(BooruType.rule34, () => BooruEngine(
         booru: const Rule34(),
         repositoryFactory: (dio, {serverId}) =>
             Rule34Repository(dio: dio, serverId: serverId ?? 'rule34'),
-        builderFactory: Rule34Builder.new,
       ));
 
   registry.register(BooruType.safebooru, () => BooruEngine(
         booru: const Safebooru(),
         repositoryFactory: (dio, {serverId}) =>
             SafebooruRepository(dio: dio, serverId: serverId ?? 'safebooru'),
-        builderFactory: SafebooruBuilder.new,
       ));
 }
 
@@ -215,3 +199,4 @@ class BooruRegistry {
     return engine.repositoryFactory(dio, serverId: serverId);
   }
 }
+

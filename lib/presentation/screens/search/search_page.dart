@@ -19,6 +19,21 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   final _focusNode = FocusNode();
   Timer? _debounce;
   String _lastQuery = '';
+  String _sort = '';
+  String? _rating;
+
+  static const _sortOptions = [
+    ('相关度', ''),
+    ('分数', 'order:score'),
+    ('日期', 'order:date'),
+    ('分级', 'order:rating'),
+  ];
+  static const _ratingOptions = [
+    ('全部', null),
+    ('安全', 's'),
+    ('可疑', 'q'),
+    ('限制级', 'e'),
+  ];
 
   @override
   void initState() {
@@ -38,10 +53,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   void _submit(String query) {
     final q = query.trim();
-    if (q.isNotEmpty) {
-      ref.read(searchHistoryRepoProvider).add(q);
-      context.pop(q);
-    }
+    if (q.isEmpty) return;
+    ref.read(searchHistoryRepoProvider).add(q);
+    final parts = <String>[
+      if (q.isNotEmpty) q,
+      if (_sort.isNotEmpty) _sort,
+      if (_rating != null) 'rating:$_rating',
+    ];
+    context.pop(parts.join(' '));
   }
 
   void _onChanged(String value) {
@@ -95,6 +114,52 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               ),
           ],
         ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: Icon(
+              Icons.sort,
+              color: _sort.isNotEmpty ? theme.colorScheme.primary : null,
+            ),
+            tooltip: '排序',
+            onSelected: (v) => setState(() => _sort = v),
+            itemBuilder: (_) => [
+              for (final (label, value) in _sortOptions)
+                PopupMenuItem(
+                  value: value,
+                  child: Row(
+                    children: [
+                      if (_sort == value)
+                        Icon(Icons.check, size: 16, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text(label, style: const TextStyle(fontSize: 13)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          PopupMenuButton<String?>(
+            icon: Icon(
+              Icons.filter_alt,
+              color: _rating != null ? theme.colorScheme.primary : null,
+            ),
+            tooltip: '分级',
+            onSelected: (v) => setState(() => _rating = v),
+            itemBuilder: (_) => [
+              for (final (label, value) in _ratingOptions)
+                PopupMenuItem(
+                  value: value,
+                  child: Row(
+                    children: [
+                      if (_rating == value)
+                        Icon(Icons.check, size: 16, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text(label, style: const TextStyle(fontSize: 13)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
       body: Column(
         children: [
