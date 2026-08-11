@@ -1,0 +1,17 @@
+# 强制 LF 行尾，防止 Windows 检出时 CRLF 损坏脚本与文档
+*.sh    text eol=lf
+*.py    text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.svg   text eol=lf
+*.dart  text eol=lf
+
+# 二进制资源
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.ico   binary
+*.apk   binary

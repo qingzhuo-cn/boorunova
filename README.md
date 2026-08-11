@@ -1,72 +1,101 @@
-# BooruNova
+<div align="center">
 
-BooruNova 是一个开源的 Android Booru 图库客户端，支持 Danbooru、Gelbooru、Safebooru、Moebooru、e621、Sankaku、Zerochan、Rule34 等主流站点。
+<p align="center"><img width="1000px" alt="BooruNova banner" src="docs/assets/banner.svg"></p>
 
-BooruNova is an open-source Android client for booru image boards, supporting Danbooru, Gelbooru, Safebooru, Moebooru, e621, Sankaku, Zerochan, Rule34, and more.
+# BooruNova [![Awesome](https://awesome.re/badge-flat.svg)](https://awesome.re)
 
-## 功能特性 / Features
+**One app, every booru.** An open-source Android client for booru image boards.
 
-### 浏览与查看 / Browsing
+English / [简体中文](README_cn.md)
 
-- 多服务器支持，一个应用浏览所有站点
-- 瀑布流时间线，可调列数（2-6 列）
-- 全屏查看器：双指缩放、滑动切换、自动播放
-- 帖子详情：画师/角色/版权/通用标签分类展示
-- Multi-server support — browse every site in one app
-- Masonry grid timeline with adjustable columns (2-6)
-- Full-screen viewer: pinch-zoom, swipe navigation, slideshow
-- Post details with categorized tags (artist/character/copyright/general)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Android%208.0%2B-green.svg)](https://github.com/qingzhuo-cn/boorunova/releases)
+[![Language](https://img.shields.io/badge/language-Dart%20%2F%20Flutter-0175C2.svg)](https://flutter.dev)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Release](https://img.shields.io/github/v/release/qingzhuo-cn/boorunova)](https://github.com/qingzhuo-cn/boorunova/releases)
 
-### 搜索 / Search
+</div>
 
-- 标签自动补全建议
-- 各站点热门标签推荐
-- 搜索历史管理（最近 20 条）
-- Tag autocomplete suggestions
-- Trending tags from the current site
-- Search history (last 20 entries)
+## Table of Contents
 
-### 收藏与下载 / Favorites & Downloads
+- [Why BooruNova](#why-boorunova)
+- [Features](#features)
+- [Supported Sites](#supported-sites)
+- [Download](#download)
+- [Quick Start](#quick-start)
+- [Usage](#usage)
+- [How It Works](#how-it-works)
+- [Development](#development)
+- [Related Projects](#related-projects)
+- [License](#license)
 
-- 收藏帖子，跨服务器独立管理
-- 下载到系统相册，支持预览图/原图切换
-- 批量收藏、批量下载、批量分享
-- Favorite posts with per-server tracking
-- Download to gallery with sample/original quality toggle
-- Batch favorite, download, and share
+## Why BooruNova
 
-### 个性化 / Personalization
+Browsing multiple booru sites usually means juggling several apps or clunky mobile websites, each with different search syntax, tag layouts, and quirks. BooruNova was built to be a single, fast, native client that speaks every major booru engine — one search bar, one timeline, one place for favorites and downloads.
 
-- 标签屏蔽（黑名单）
-- 浅色/深色/午夜主题，自定义强调色
-- 可配置手势（滑动/点击/长按）
-- Hosts 域名映射，应对网络受限环境
-- Tag blocking (blacklist)
-- Light/dark/midnight themes with custom accent colors
-- Configurable gestures (swipe/tap/long-press)
-- Custom Hosts domain mapping for restricted networks
+## Features
 
-### 数据管理 / Data Management
+### Browsing
+- 🖼️ **Multi-server support** — browse every configured site from one app
+- 🌊 **Masonry timeline** — adjustable grid columns (2–6), seamless infinite scroll
+- 🔍 **Full-screen viewer** — pinch-zoom, swipe navigation, slideshow mode
+- 🏷️ **Categorized tags** — artist / character / copyright / general / meta
 
-- 完整备份/恢复（服务器、收藏、历史、设置等 6 类数据）
-- 缓存清理
-- Full backup/restore (servers, favorites, history, settings, etc.)
-- Cache management
+### Search
+- ✨ **Tag autocomplete** — debounced, per-server cached suggestions
+- 🔥 **Trending tags** — pulled live from the current site
+- 🕘 **Search history** — last 20 queries, one-tap re-run
+- 🎚️ **Sort & rating filters** — relevance / score / date / rating, built into the query
 
-## 下载 / Download
+### Favorites & Downloads
+- ⭐ **Favorites** — tracked per-server, cross-app
+- 💾 **Download to gallery** — sample or original quality
+- 📦 **Batch operations** — favorite, download, and share multiple posts
 
-从 [GitHub Releases](https://github.com/qingzhuo-cn/boorunova/releases) 下载最新 APK。
+### Personalization
+- 🚫 **Tag blacklist** — hide what you don't want to see
+- 🎨 **Themes** — light / dark / midnight with custom accent colors
+- 👆 **Configurable gestures** — swipe / tap / long-press actions
+- 🌐 **Custom Hosts mapping** — reach sites from restricted networks
 
-Download the latest APK from [GitHub Releases](https://github.com/qingzhuo-cn/boorunova/releases).
+### Data Management
+- 🗄️ **Full backup & restore** — servers, favorites, history, blacklist, settings
+- 🧹 **Cache management** — reclaim storage in one tap
 
-## 快速开始 / Getting Started
+## Supported Sites
 
-### 环境要求 / Prerequisites
+Any site running one of these engines can be added by URL — the app auto-detects the engine:
 
-- Flutter SDK >= 3.0.3
-- Android SDK
+| Engine | Example sites |
+|--------|---------------|
+| Danbooru | danbooru.donmai.us |
+| Gelbooru (v0.2 API) | gelbooru.com |
+| Moebooru | yande.re, konachan.com |
+| Safebooru | safebooru.org |
+| e621 | e621.net |
+| Sankaku | chan.sankakucomplex.com |
+| Zerochan | zerochan.net |
+| Rule34 | rule34.xxx |
 
-### 安装 / Installation
+## Download
+
+Grab the latest APK from [GitHub Releases](https://github.com/qingzhuo-cn/boorunova/releases).
+
+| ABI | Package |
+|-----|---------|
+| arm64-v8a / x86_64 (universal) | `app-release.apk` |
+
+## Quick Start
+
+### Prerequisites
+
+| Requirement | Version |
+|-------------|---------|
+| Flutter SDK | >= 3.10.4 |
+| Dart | >= 3.0.3 |
+| Android SDK | API 26+ |
+
+### Run from source
 
 ```bash
 git clone https://github.com/qingzhuo-cn/boorunova.git
@@ -75,41 +104,72 @@ flutter pub get
 flutter run
 ```
 
-### 构建 Release / Build
+### Build a release APK
 
 ```bash
-flutter build apk --release --target-platform android-arm64
+flutter build apk --release
 ```
 
-## 使用说明 / Usage
+Output lands at `build/app/outputs/flutter-apk/app-release.apk`.
 
-### 添加服务器 / Adding a Server
+## Usage
 
-1. 在「服务器」页面点击 **+** 按钮
-2. 输入站点地址（如 `https://safebooru.org`）
-3. 点击「探测」自动匹配引擎类型
-4. 确认引擎类型，填写名称后保存
-5. Tap **+** on the Servers page, enter a site URL, tap **探测** to auto-detect the engine, then save.
+### Adding a server
 
-### 排序服务器 / Reordering Servers
+| Step | Action |
+|------|--------|
+| 1 | Open the **Servers** page, tap **+** |
+| 2 | Enter the site URL (e.g. `https://safebooru.org`) |
+| 3 | Tap **探测 / Detect** — the engine is auto-matched |
+| 4 | Confirm the engine, name it, save |
 
-在服务器页右上角点击排序按钮，进入拖拽排序模式。
+### Reordering servers
 
-Tap the sort button in the top-right corner of the Servers page to enter drag-reorder mode.
+Tap the sort button (top-right of the Servers page) to enter drag-reorder mode, then drag to taste.
 
-## 支持站点 / Supported Sites
+### Searching
 
-| 引擎 | 站点示例 |
-|------|----------|
-| Danbooru | danbooru.donmai.us |
-| Gelbooru | gelbooru.com |
-| Moebooru | yande.re / konachan.com |
-| Safebooru | safebooru.org |
-| e621 | e621.net |
-| Sankaku | chan.sankakucomplex.com |
-| Zerochan | zerochan.net |
-| Rule34 | rule34.xxx |
+Type a tag and pick from live suggestions, or combine with sort/rating filters from the toolbar (`order:score`, `rating:s`, …) — they're merged into the query for you.
 
-## 开源协议 / License
+## How It Works
 
-MIT License
+```
+┌─────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   UI (Riverpod) │──▶│  BooruRegistry    │──▶│  Engine (8 impl) │
+│  screens/widgets │   │  createRepository │   │  per-site repo   │
+└─────────────┘    └──────────────────┘    └────────┬────────┘
+                                                    │
+                          ┌─────────────────────────┘
+                          ▼
+                   ┌──────────────┐    ┌──────────────┐
+                   │  BaseBooru    │──▶│   Parser      │──▶ BooruPost
+                   │  Repository   │   │ (per engine)  │
+                   │  (dio+server) │    └──────────────┘
+                   └──────┬───────┘
+                         │
+                   ┌─────▼──────┐
+                   │ DioFactory │──▶ hosts interceptor, timeouts, UA
+                   └────────────┘
+```
+
+Every engine is a thin `BaseBooruRepository` subclass — it only declares its endpoints and parser. Networking (timeouts, hosts remapping, auth headers) is centralized in `DioFactory`, so one fix applies everywhere.
+
+## Development
+
+| Task | Command |
+|------|---------|
+| Analyze | `flutter analyze` |
+| Run tests | `flutter test` |
+| Add an engine | subclass `BaseBooruRepository`, register in `BooruRegistry` |
+
+The parser layer is covered by fixture-driven unit tests (`test/boorus/`) — each engine's parser is exercised against real-shaped responses plus malformed-input cases.
+
+## Related Projects
+
+- [Boorusphere](https://github.com/nullxception/boorusphere) — UI/UX inspiration
+- [Boorusama](https://github.com/khoadng/Boorusama) — feature & settings inspiration
+- [awesome-booru](https://awesome.re) — the booru ecosystem
+
+## License
+
+[MIT](LICENSE) © BooruNova contributors

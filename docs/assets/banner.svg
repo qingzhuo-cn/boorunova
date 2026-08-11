@@ -1,0 +1,51 @@
+<svg width="1000" height="280" viewBox="0 0 1000 280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d1117"/>
+      <stop offset="55%" stop-color="#131c2e"/>
+      <stop offset="100%" stop-color="#0a2530"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1000" height="280" rx="16" fill="url(#bg)"/>
+
+  <!-- 装饰网格点 -->
+  <g fill="#ffffff" opacity="0.05">
+    <circle cx="80" cy="60" r="2"/><circle cx="160" cy="40" r="2"/><circle cx="240" cy="70" r="2"/>
+    <circle cx="860" cy="60" r="2"/><circle cx="920" cy="100" r="2"/><circle cx="900" cy="200" r="2"/>
+    <circle cx="70" cy="200" r="2"/><circle cx="140" cy="230" r="2"/><circle cx="940" cy="240" r="2"/>
+  </g>
+
+  <!-- 主标题 -->
+  <text x="500" y="104" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="56" font-weight="700" fill="#f0f6fc">Booru<tspan fill="url(#accent)">Nova</tspan></text>
+
+  <!-- 副标题 -->
+  <text x="500" y="148" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="20" fill="#8b949e">One app, every booru. 一个客户端，浏览所有图站。</text>
+
+  <!-- 标签芯片：每片宽度按标签字符数单独计算（等宽约 8.4px/字符 + 24px 内边距），间距 16px -->
+  <g font-family="Consolas, Menlo, monospace" font-size="14" text-anchor="middle">
+    <!-- Flutter: 7 字符 → 宽 84 -->
+    <rect x="264" y="176" width="84" height="32" rx="16" fill="#2dd4bf" opacity="0.15"/>
+    <rect x="264" y="176" width="84" height="32" rx="16" fill="none" stroke="#2dd4bf" stroke-width="1" opacity="0.5"/>
+    <text x="306" y="197" fill="#2dd4bf">Flutter</text>
+
+    <!-- Android 8.0+: 12 字符 → 宽 125 -->
+    <rect x="364" y="176" width="125" height="32" rx="16" fill="#38bdf8" opacity="0.15"/>
+    <rect x="364" y="176" width="125" height="32" rx="16" fill="none" stroke="#38bdf8" stroke-width="1" opacity="0.5"/>
+    <text x="426" y="197" fill="#38bdf8">Android 8.0+</text>
+
+    <!-- 8 Engines: 9 字符 → 宽 100 -->
+    <rect x="505" y="176" width="100" height="32" rx="16" fill="#a78bfa" opacity="0.15"/>
+    <rect x="505" y="176" width="100" height="32" rx="16" fill="none" stroke="#a78bfa" stroke-width="1" opacity="0.5"/>
+    <text x="555" y="197" fill="#a78bfa">8 Engines</text>
+
+    <!-- MIT License: 11 字符 → 宽 116 -->
+    <rect x="621" y="176" width="116" height="32" rx="16" fill="#f472b6" opacity="0.15"/>
+    <rect x="621" y="176" width="116" height="32" rx="16" fill="none" stroke="#f472b6" stroke-width="1" opacity="0.5"/>
+    <text x="679" y="197" fill="#f472b6">MIT License</text>
+  </g>
+</svg>
