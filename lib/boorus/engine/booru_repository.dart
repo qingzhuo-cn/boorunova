@@ -79,6 +79,9 @@ class PostSummary {
 }
 
 abstract class BooruRepository {
+  /// 站点标识，用于跨站点缓存隔离。
+  String get serverId;
+
   Future<BooruPageResult> searchPosts(BooruQuery query);
   Future<List<String>> suggestTags(String query, {int limit = 10});
   Future<List<String>> fetchTrendingTags({int limit = 20}) async => [];

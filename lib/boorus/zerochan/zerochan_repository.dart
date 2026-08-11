@@ -14,6 +14,9 @@ class ZerochanRepository extends BooruRepository {
   final String _serverId;
 
   @override
+  String get serverId => _serverId;
+
+  @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
     final tags = query.tags.isEmpty ? 'index' : _encodeTags(query.tags);
     final response = await _dio.get(
@@ -94,5 +97,3 @@ extension _ZerochanPostToSummary on BooruPost {
         postUrl: postUrl,
       );
 }
-
-

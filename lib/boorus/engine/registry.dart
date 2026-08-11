@@ -20,6 +20,7 @@ import 'package:boorunova/boorus/sankaku/sankaku_repository.dart';
 import 'package:boorunova/boorus/zerochan/zerochan.dart';
 import 'package:boorunova/boorus/zerochan/zerochan_repository.dart';
 import 'package:boorunova/data/repository/hosts/user_hosts_repo.dart';
+import 'package:boorunova/foundation/network/dio_factory.dart';
 import 'package:boorunova/foundation/network/hosts_interceptor.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -118,15 +119,7 @@ class BooruRegistry {
 
   Future<BooruType?> probe(String baseUrl, {BooruType? singleType}) async {
     final url = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
-    final dio = Dio(BaseOptions(
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
-      validateStatus: (s) => s == 200,
-    ));
-    final interceptor = hostsInterceptor;
-    if (interceptor != null) {
-      dio.interceptors.add(interceptor);
-    }
+    final dio = DioFactory.createProbe(hostsInterceptor: hostsInterceptor);
 
     final types = singleType != null ? [singleType] : _probePaths.keys;
     for (final type in types) {
@@ -178,17 +171,11 @@ class BooruRegistry {
       headers['Authorization'] = 'Basic $basic';
     }
 
-    final dio = Dio(BaseOptions(
+    return DioFactory.create(
       baseUrl: baseUrl ?? engine.booru.baseUrl,
       headers: headers,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 60),
-    ));
-    final interceptor = hostsInterceptor;
-    if (interceptor != null) {
-      dio.interceptors.add(interceptor);
-    }
-    return dio;
+      hostsInterceptor: hostsInterceptor,
+    );
   }
 
   BooruRepository createRepository(BooruType type,
@@ -199,4 +186,3 @@ class BooruRegistry {
     return engine.repositoryFactory(dio, serverId: serverId);
   }
 }
-

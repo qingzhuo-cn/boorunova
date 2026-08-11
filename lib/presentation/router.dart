@@ -9,9 +9,10 @@ import 'package:boorunova/presentation/screens/history/search_history_page.dart'
 import 'package:boorunova/presentation/screens/home/home_page.dart';
 import 'package:boorunova/presentation/screens/post/post_detail_page.dart';
 import 'package:boorunova/presentation/screens/post/post_viewer.dart';
+import 'package:boorunova/presentation/screens/search/search_page.dart';
 import 'package:boorunova/presentation/screens/server/server_page.dart';
-import 'package:boorunova/presentation/screens/settings/appearance_page.dart';
 import 'package:boorunova/presentation/screens/settings/about_settings_page.dart';
+import 'package:boorunova/presentation/screens/settings/appearance_page.dart';
 import 'package:boorunova/presentation/screens/settings/booru_config_page.dart';
 import 'package:boorunova/presentation/screens/settings/data_backup_page.dart';
 import 'package:boorunova/presentation/screens/settings/data_storage_page.dart';
@@ -23,7 +24,6 @@ import 'package:boorunova/presentation/screens/settings/privacy_page.dart';
 import 'package:boorunova/presentation/screens/settings/search_settings_page.dart';
 import 'package:boorunova/presentation/screens/settings/settings_page.dart';
 import 'package:boorunova/presentation/screens/settings/viewer_settings_page.dart';
-import 'package:boorunova/presentation/screens/search/search_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -225,7 +225,7 @@ class _InvalidRoutePage extends StatelessWidget {
             const SizedBox(height: 12),
             const Text('链接无效', style: TextStyle(fontSize: 16)),
             const SizedBox(height: 8),
-            Text('请从主页重新进入', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const Text('请从主页重新进入', style: TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => context.go('/'),

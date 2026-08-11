@@ -34,7 +34,7 @@ class PrivacyPage extends ConsumerWidget {
                 ],
               ),
             );
-            if (confirmed == true && context.mounted) {
+            if ((confirmed ?? false) && context.mounted) {
               await ref.read(searchHistoryRepoProvider).clear();
               ref.invalidate(searchHistoryRepoProvider);
               if (context.mounted) {
@@ -59,7 +59,7 @@ class PrivacyPage extends ConsumerWidget {
                 ],
               ),
             );
-            if (confirmed == true && context.mounted) {
+            if ((confirmed ?? false) && context.mounted) {
               await ref.read(userHistoryRepoProvider).clear();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('浏览历史已清除')));
@@ -83,7 +83,7 @@ class PrivacyPage extends ConsumerWidget {
                 ],
               ),
             );
-            if (confirmed == true && context.mounted) {
+            if ((confirmed ?? false) && context.mounted) {
               await ref.read(userDownloadsRepoProvider).clear();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('下载记录已清除')));

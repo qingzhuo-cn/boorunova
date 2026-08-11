@@ -26,7 +26,7 @@ class _ServerScanPageState extends ConsumerState<ServerScanPage> {
     super.initState();
     _urlController.text = widget.initialUrl;
     if (widget.initialUrl.isNotEmpty) {
-      Future.microtask(() => _startScan());
+      Future.microtask(_startScan);
     }
   }
 

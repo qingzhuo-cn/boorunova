@@ -305,4 +305,3 @@ class _DownloadProgressIcon extends ConsumerWidget {
     return SizedBox(width: 20, height: 20, child: CircularProgressIndicator(value: (p?.progress ?? 0) > 0 ? p!.progress : null, strokeWidth: 2, color: Colors.white));
   }
 }
-

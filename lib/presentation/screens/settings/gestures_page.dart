@@ -13,10 +13,10 @@ class GesturesPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('手势')),
       body: ListView(children: [
         _header('图片查看器'),
-        _tile('下滑动作', s.swipeDownAction == 'detail' ? '查看详情' : '关闭', ['close', 'detail'], ['关闭', '查看详情'], (v) => n.setSwipeDownAction(v), s.swipeDownAction),
-        _tile('单击图片', s.tapAction == 'detail' ? '查看详情' : '无', ['detail', 'none'], ['查看详情', '无'], (v) => n.setTapAction(v), s.tapAction),
-        _tile('双击图片', s.doubleTapAction == 'fav' ? '收藏' : '缩放', ['zoom', 'fav'], ['缩放', '收藏'], (v) => n.setDoubleTapAction(v), s.doubleTapAction),
-        _tile('长按图片', s.longPressAction == 'fav' ? '收藏' : '无', ['fav', 'none'], ['收藏', '无'], (v) => n.setLongPressAction(v), s.longPressAction),
+        _tile('下滑动作', s.swipeDownAction == 'detail' ? '查看详情' : '关闭', ['close', 'detail'], ['关闭', '查看详情'], n.setSwipeDownAction, s.swipeDownAction),
+        _tile('单击图片', s.tapAction == 'detail' ? '查看详情' : '无', ['detail', 'none'], ['查看详情', '无'], n.setTapAction, s.tapAction),
+        _tile('双击图片', s.doubleTapAction == 'fav' ? '收藏' : '缩放', ['zoom', 'fav'], ['缩放', '收藏'], n.setDoubleTapAction, s.doubleTapAction),
+        _tile('长按图片', s.longPressAction == 'fav' ? '收藏' : '无', ['fav', 'none'], ['收藏', '无'], n.setLongPressAction, s.longPressAction),
       ]),
     );
   }

@@ -65,9 +65,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   void _onChanged(String value) {
     _debounce?.cancel();
-    setState(() => _lastQuery = value.trim());
-    _debounce = Timer(const Duration(milliseconds: 250), () {
-      if (mounted) setState(() {});
+    final q = value.trim();
+    if (q.isEmpty) {
+      setState(() => _lastQuery = '');
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) setState(() => _lastQuery = q);
     });
   }
 
@@ -75,7 +79,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final searchHistory = ref.watch(searchHistoryRepoProvider).getAll();
-    final suggestions = _lastQuery.length >= 1
+    final suggestions = _lastQuery.isNotEmpty
         ? ref.watch(tagSuggestionProvider(_lastQuery))
         : const AsyncData<List<String>>([]);
     final trendingAsync = ref.watch(trendingTagsProvider);
@@ -164,7 +168,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       body: Column(
         children: [
           Expanded(
-            child: _lastQuery.length >= 1
+            child: _lastQuery.isNotEmpty
                 ? _buildSuggestions(theme, suggestions)
                 : _buildOverview(theme, searchHistory, trendingAsync),
           ),

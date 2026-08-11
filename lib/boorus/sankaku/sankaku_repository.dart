@@ -14,6 +14,9 @@ class SankakuRepository extends BooruRepository {
   final String _serverId;
 
   @override
+  String get serverId => _serverId;
+
+  @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
     final tags = <String>[
       if (query.tags.isNotEmpty) query.tags,
@@ -138,5 +141,3 @@ extension _SankakuPostToSummary on BooruPost {
         postUrl: postUrl,
       );
 }
-
-

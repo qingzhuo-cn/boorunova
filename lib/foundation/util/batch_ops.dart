@@ -1,5 +1,5 @@
 import 'package:boorunova/data/repository/downloads/user_downloads_repo.dart';
-import 'package:dio/dio.dart';
+import 'package:boorunova/foundation/network/dio_factory.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -21,7 +21,7 @@ class BatchOps {
         }
 
         final path = '${dir.path}/$name';
-        final dio = Dio();
+        final dio = DioFactory.createDownload();
         await dio.download(urls[i], path);
         await Gal.putImage(path);
 

@@ -55,7 +55,7 @@ class AppearanceSettingsPage extends ConsumerWidget {
 Widget _header(String t) {
   return Padding(
     padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-    child: Text(t, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey)),
+    child: Text(t, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey)),
   );
 }
 

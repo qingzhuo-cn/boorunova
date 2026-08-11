@@ -31,5 +31,5 @@ class Moebooru extends Booru {
       };
 
   @override
-  String? get loginUrl => '${baseUrl}/user/login';
+  String? get loginUrl => '$baseUrl/user/login';
 }
