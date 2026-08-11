@@ -29,6 +29,16 @@ English / [简体中文](README_cn.md)
 - [Related Projects](#related-projects)
 - [License](#license)
 
+## Screenshots
+
+<div align="center">
+  <img src="docs/screenshots/home.png" width="360" alt="Masonry timeline">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/search.png" width="360" alt="Tag autocomplete">
+  <br>
+  <sub><b>Left:</b> masonry timeline with per-post favorite &nbsp;·&nbsp; <b>Right:</b> debounced tag autocomplete</sub>
+</div>
+
 ## Why BooruNova
 
 Browsing multiple booru sites usually means juggling several apps or clunky mobile websites, each with different search syntax, tag layouts, and quirks. BooruNova was built to be a single, fast, native client that speaks every major booru engine — one search bar, one timeline, one place for favorites and downloads.

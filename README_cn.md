@@ -18,6 +18,7 @@
 
 ## 目录
 
+- [界面截图](#界面截图)
 - [为什么做 BooruNova](#为什么做-boorunova)
 - [功能特性](#功能特性)
 - [支持站点](#支持站点)
@@ -28,6 +29,16 @@
 - [开发](#开发)
 - [相关项目](#相关项目)
 - [开源协议](#开源协议)
+
+## 界面截图
+
+<div align="center">
+  <img src="docs/screenshots/home.png" width="360" alt="瀑布流时间线">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/search.png" width="360" alt="标签自动补全">
+  <br>
+  <sub><b>左：</b>瀑布流时间线，逐帖收藏 &nbsp;·&nbsp; <b>右：</b>防抖标签自动补全</sub>
+</div>
 
 ## 为什么做 BooruNova
 
