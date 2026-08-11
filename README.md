@@ -174,12 +174,6 @@ Every engine is a thin `BaseBooruRepository` subclass — it only declares its e
 
 The parser layer is covered by fixture-driven unit tests (`test/boorus/`) — each engine's parser is exercised against real-shaped responses plus malformed-input cases.
 
-## Related Projects
-
-- [Boorusphere](https://github.com/nullxception/boorusphere) — UI/UX inspiration
-- [Boorusama](https://github.com/khoadng/Boorusama) — feature & settings inspiration
-- [awesome-booru](https://awesome.re) — the booru ecosystem
-
 ## License
 
 [MIT](LICENSE) © BooruNova contributors
