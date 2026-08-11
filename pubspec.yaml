@@ -1,7 +1,7 @@
 name: boorunova
 description: A booru client for Android
 publish_to: "none"
-version: 1.5.0+15
+version: 1.5.1+16
 
 environment:
   sdk: ">=3.0.3 <4.0.0"
