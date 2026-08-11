@@ -1,35 +1,18 @@
-﻿import 'package:boorunova/boorus/engine/booru_repository.dart';
+﻿import 'package:boorunova/boorus/engine/base_booru_repository.dart';
+import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/boorus/sankaku/parser/sankaku_parser.dart';
-import 'package:boorunova/data/repository/booru/entity/post.dart';
-import 'package:dio/dio.dart';
 
-class SankakuRepository extends BooruRepository {
+class SankakuRepository extends BaseBooruRepository {
   SankakuRepository({
-    required Dio dio,
-    required String serverId,
-  })  : _dio = dio,
-        _serverId = serverId;
-
-  final Dio _dio;
-  final String _serverId;
-
-  @override
-  String get serverId => _serverId;
+    required super.dio,
+    required super.serverId,
+  });
 
   @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
-    final tags = <String>[
-      if (query.tags.isNotEmpty) query.tags,
-      if (query.rating != null)
-        switch (query.rating!) {
-          's' => 'rating:safe',
-          'q' => 'rating:questionable',
-          'e' => 'rating:explicit',
-          _ => 'rating:${query.rating}',
-        },
-    ].join(' ');
+    final tags = buildTagsQuery(query, BaseBooruRepository.ratingMapLong);
 
-    final response = await _dio.get(
+    final response = await dio.get(
       '/post/index.json',
       queryParameters: {
         'tags': tags,
@@ -43,16 +26,16 @@ class SankakuRepository extends BooruRepository {
       return const BooruPageResult(posts: [], hasMore: false);
     }
 
-    final posts = SankakuParser.parsePosts(_serverId, data);
+    final posts = SankakuParser.parsePosts(serverId, data);
     return BooruPageResult(
-      posts: posts.map((p) => p.toSummary(_serverId)).toList(),
+      posts: posts.map((p) => p.toSummary(serverId)).toList(),
       hasMore: posts.length >= query.limit,
     );
   }
 
   @override
   Future<List<String>> suggestTags(String query, {int limit = 10}) async {
-    final response = await _dio.get(
+    final response = await dio.get(
       '/tag/index.json',
       queryParameters: {
         'name': '$query*',
@@ -67,7 +50,7 @@ class SankakuRepository extends BooruRepository {
 
   @override
   Future<List<String>> fetchTrendingTags({int limit = 20}) async {
-    final response = await _dio.get(
+    final response = await dio.get(
       '/tag/index.json',
       queryParameters: {
         'order': 'count',
@@ -82,7 +65,7 @@ class SankakuRepository extends BooruRepository {
   @override
   Future<bool> addFavorite(String postId) async {
     try {
-      await _dio.post('/post/$postId/favorites.json');
+      await dio.post('/post/$postId/favorites.json');
       return true;
     } catch (_) {
       return false;
@@ -92,7 +75,7 @@ class SankakuRepository extends BooruRepository {
   @override
   Future<bool> removeFavorite(String postId) async {
     try {
-      await _dio.delete('/post/$postId/favorites.json');
+      await dio.delete('/post/$postId/favorites.json');
       return true;
     } catch (_) {
       return false;
@@ -102,7 +85,7 @@ class SankakuRepository extends BooruRepository {
   @override
   Future<bool> isFavorite(String postId) async {
     try {
-      final response = await _dio.get('/favorite/index.json', queryParameters: {
+      final response = await dio.get('/favorite/index.json', queryParameters: {
         'post_id': postId,
         'limit': 1,
       });
@@ -117,27 +100,4 @@ class SankakuRepository extends BooruRepository {
   Future<List<String>> getFavoriteIds() async {
     return [];
   }
-}
-
-extension _SankakuPostToSummary on BooruPost {
-  PostSummary toSummary(String serverId) => PostSummary(
-        id: id,
-        serverId: serverId,
-        thumbnailUrl: thumbnailUrl,
-        sampleUrl: sampleUrl,
-        originalUrl: originalUrl,
-        tags: tags,
-        tagGeneral: tagGeneral,
-        tagArtist: tagArtist,
-        tagCharacter: tagCharacter,
-        tagCopyright: tagCopyright,
-        tagMeta: tagMeta,
-        aspectRatio: aspectRatio,
-        width: width,
-        height: height,
-        rating: rating,
-        score: score,
-        source: source,
-        postUrl: postUrl,
-      );
 }

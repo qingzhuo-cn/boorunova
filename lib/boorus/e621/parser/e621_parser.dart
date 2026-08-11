@@ -9,10 +9,11 @@ class E621Parser {
   ) {
     return json.whereType<Map<String, dynamic>>().map((post) {
       final id = post['id']?.toString() ?? '';
-      final file = (post['file'] as Map<String, dynamic>?) ?? {};
-      final sample = (post['sample'] as Map<String, dynamic>?) ?? {};
-      final preview = (post['preview'] as Map<String, dynamic>?) ?? {};
-      final tagsMap = (post['tags'] as Map<String, dynamic>?) ?? {};
+      // 嵌套字段可能是畸形类型（如字符串），安全转型避免整个列表崩溃
+      final file = _asMap(post['file']);
+      final sample = _asMap(post['sample']);
+      final preview = _asMap(post['preview']);
+      final tagsMap = _asMap(post['tags']);
 
       final fileUrl = (file['url'] as String?) ?? '';
       final sampleUrl = (sample['url'] as String?) ?? '';
@@ -39,7 +40,7 @@ class E621Parser {
       ];
 
       final rating = (post['rating'] as String?) ?? 'q';
-      final scoreMap = (post['score'] as Map<String, dynamic>?) ?? {};
+      final scoreMap = _asMap(post['score']);
       final score = (scoreMap['total'] as int?) ?? 0;
       final sources = _tagList(post['sources']);
       final source = sources.isNotEmpty ? sources.first : '';
@@ -65,6 +66,10 @@ class E621Parser {
         postUrl: id,
       );
     }).toList();
+  }
+
+  static Map<String, dynamic> _asMap(Object? input) {
+    return input is Map<String, dynamic> ? input : {};
   }
 
   static List<String> _tagList(Object? input) {

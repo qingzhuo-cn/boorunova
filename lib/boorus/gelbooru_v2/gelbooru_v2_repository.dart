@@ -1,20 +1,12 @@
-﻿import 'package:boorunova/boorus/engine/booru_repository.dart';
+﻿import 'package:boorunova/boorus/engine/base_booru_repository.dart';
+import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/boorus/gelbooru_v2/parser/gelbooru_v2_parser.dart';
-import 'package:boorunova/data/repository/booru/entity/post.dart';
-import 'package:dio/dio.dart';
 
-class GelbooruV2Repository extends BooruRepository {
+class GelbooruV2Repository extends BaseBooruRepository {
   GelbooruV2Repository({
-    required Dio dio,
-    required String serverId,
-  })  : _dio = dio,
-        _serverId = serverId;
-
-  final Dio _dio;
-  final String _serverId;
-
-  @override
-  String get serverId => _serverId;
+    required super.dio,
+    required super.serverId,
+  });
 
   @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
@@ -29,7 +21,7 @@ class GelbooruV2Repository extends BooruRepository {
         },
     ].join(' ');
 
-    final response = await _dio.get(
+    final response = await dio.get(
       '/index.php',
       queryParameters: {
         'page': 'dapi',
@@ -47,19 +39,19 @@ class GelbooruV2Repository extends BooruRepository {
     }
 
     final posts = GelbooruV2Parser.parsePosts(
-      _serverId,
-      _dio.options.baseUrl,
+      serverId,
+      dio.options.baseUrl,
       xml,
     );
     return BooruPageResult(
-      posts: posts.map((p) => p.toSummary(_serverId)).toList(),
+      posts: posts.map((p) => p.toSummary(serverId)).toList(),
       hasMore: posts.length >= query.limit,
     );
   }
 
   @override
   Future<List<String>> suggestTags(String query, {int limit = 10}) async {
-    final response = await _dio.get(
+    final response = await dio.get(
       '/index.php',
       queryParameters: {
         'page': 'dapi',
@@ -79,7 +71,7 @@ class GelbooruV2Repository extends BooruRepository {
 
   @override
   Future<List<String>> fetchTrendingTags({int limit = 20}) async {
-    final response = await _dio.get(
+    final response = await dio.get(
       '/index.php',
       queryParameters: {
         'page': 'dapi',
@@ -97,7 +89,7 @@ class GelbooruV2Repository extends BooruRepository {
   @override
   Future<bool> addFavorite(String postId) async {
     try {
-      await _dio.post('/index.php', queryParameters: {
+      await dio.post('/index.php', queryParameters: {
         'page': 'favorites',
         's': 'add',
         'id': postId,
@@ -111,7 +103,7 @@ class GelbooruV2Repository extends BooruRepository {
   @override
   Future<bool> removeFavorite(String postId) async {
     try {
-      await _dio.post('/index.php', queryParameters: {
+      await dio.post('/index.php', queryParameters: {
         'page': 'favorites',
         's': 'remove',
         'id': postId,
@@ -125,7 +117,7 @@ class GelbooruV2Repository extends BooruRepository {
   @override
   Future<bool> isFavorite(String postId) async {
     try {
-      final response = await _dio.get('/index.php', queryParameters: {
+      final response = await dio.get('/index.php', queryParameters: {
         'page': 'favorites',
         's': 'index',
         'id': postId,
@@ -141,27 +133,4 @@ class GelbooruV2Repository extends BooruRepository {
   Future<List<String>> getFavoriteIds() async {
     return [];
   }
-}
-
-extension _PostToSummary on BooruPost {
-  PostSummary toSummary(String serverId) => PostSummary(
-        id: id,
-        serverId: serverId,
-        thumbnailUrl: thumbnailUrl,
-        sampleUrl: sampleUrl,
-        originalUrl: originalUrl,
-        tags: tags,
-        tagGeneral: tagGeneral,
-        tagArtist: tagArtist,
-        tagCharacter: tagCharacter,
-        tagCopyright: tagCopyright,
-        tagMeta: tagMeta,
-        aspectRatio: aspectRatio,
-        width: width,
-        height: height,
-        rating: rating,
-        score: score,
-        source: source,
-        postUrl: postUrl,
-      );
 }

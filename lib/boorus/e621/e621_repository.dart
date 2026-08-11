@@ -1,20 +1,12 @@
 ﻿import 'package:boorunova/boorus/e621/parser/e621_parser.dart';
+import 'package:boorunova/boorus/engine/base_booru_repository.dart';
 import 'package:boorunova/boorus/engine/booru_repository.dart';
-import 'package:boorunova/data/repository/booru/entity/post.dart';
-import 'package:dio/dio.dart';
 
-class E621Repository extends BooruRepository {
+class E621Repository extends BaseBooruRepository {
   E621Repository({
-    required Dio dio,
-    required String serverId,
-  })  : _dio = dio,
-        _serverId = serverId;
-
-  final Dio _dio;
-  final String _serverId;
-
-  @override
-  String get serverId => _serverId;
+    required super.dio,
+    required super.serverId,
+  });
 
   @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
@@ -29,7 +21,7 @@ class E621Repository extends BooruRepository {
         },
     ].join(' ');
 
-    final response = await _dio.get(
+    final response = await dio.get(
       '/posts.json',
       queryParameters: {
         'tags': tags,
@@ -48,9 +40,9 @@ class E621Repository extends BooruRepository {
       return const BooruPageResult(posts: [], hasMore: false);
     }
 
-    final posts = E621Parser.parsePosts(_serverId, postsData);
+    final posts = E621Parser.parsePosts(serverId, postsData);
     return BooruPageResult(
-      posts: posts.map((p) => p.toSummary(_serverId)).toList(),
+      posts: posts.map((p) => p.toSummary(serverId)).toList(),
       hasMore: posts.length >= query.limit,
     );
   }
@@ -59,7 +51,7 @@ class E621Repository extends BooruRepository {
   Future<List<String>> suggestTags(String query, {int limit = 10}) async {
     if (query.isEmpty) return [];
     try {
-      final response = await _dio.get(
+      final response = await dio.get(
         '/tags.json',
         queryParameters: {
           'search[name_matches]': '*${query.toLowerCase()}*',
@@ -83,7 +75,7 @@ class E621Repository extends BooruRepository {
 
   @override
   Future<List<String>> fetchTrendingTags({int limit = 20}) async {
-    final response = await _dio.get(
+    final response = await dio.get(
       '/tags.json',
       queryParameters: {
         'search[order]': 'count',
@@ -102,7 +94,7 @@ class E621Repository extends BooruRepository {
   @override
   Future<bool> addFavorite(String postId) async {
     try {
-      await _dio.post('/favorites.json', data: {'post_id': postId});
+      await dio.post('/favorites.json', data: {'post_id': postId});
       return true;
     } catch (_) {
       return false;
@@ -112,7 +104,7 @@ class E621Repository extends BooruRepository {
   @override
   Future<bool> removeFavorite(String postId) async {
     try {
-      await _dio.delete('/favorites/$postId.json');
+      await dio.delete('/favorites/$postId.json');
       return true;
     } catch (_) {
       return false;
@@ -122,7 +114,7 @@ class E621Repository extends BooruRepository {
   @override
   Future<bool> isFavorite(String postId) async {
     try {
-      final response = await _dio.get('/favorites.json', queryParameters: {
+      final response = await dio.get('/favorites.json', queryParameters: {
         'search[post_id]': postId,
         'limit': 1,
       });
@@ -136,7 +128,7 @@ class E621Repository extends BooruRepository {
   @override
   Future<List<String>> getFavoriteIds() async {
     try {
-      final response = await _dio.get('/favorites.json', queryParameters: {
+      final response = await dio.get('/favorites.json', queryParameters: {
         'limit': 100,
       });
       final data = response.data;
@@ -146,27 +138,4 @@ class E621Repository extends BooruRepository {
       return [];
     }
   }
-}
-
-extension _E621PostToSummary on BooruPost {
-  PostSummary toSummary(String serverId) => PostSummary(
-        id: id,
-        serverId: serverId,
-        thumbnailUrl: thumbnailUrl,
-        sampleUrl: sampleUrl,
-        originalUrl: originalUrl,
-        tags: tags,
-        tagGeneral: tagGeneral,
-        tagArtist: tagArtist,
-        tagCharacter: tagCharacter,
-        tagCopyright: tagCopyright,
-        tagMeta: tagMeta,
-        aspectRatio: aspectRatio,
-        width: width,
-        height: height,
-        rating: rating,
-        score: score,
-        source: source,
-        postUrl: postUrl,
-      );
 }

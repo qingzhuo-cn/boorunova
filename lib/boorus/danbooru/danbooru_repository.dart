@@ -1,23 +1,16 @@
 import 'package:boorunova/boorus/danbooru/parser/danbooru_parser.dart';
+import 'package:boorunova/boorus/engine/base_booru_repository.dart';
 import 'package:boorunova/boorus/engine/booru_repository.dart';
-import 'package:boorunova/data/repository/booru/entity/post.dart';
-import 'package:dio/dio.dart';
 
-class DanbooruRepository extends BooruRepository {
+class DanbooruRepository extends BaseBooruRepository {
   DanbooruRepository({
-    required Dio dio,
-    required String serverId,
-  })  : _dio = dio,
-        _serverId = serverId;
-
-  final Dio _dio;
-  final String _serverId;
-
-  @override
-  String get serverId => _serverId;
+    required super.dio,
+    required super.serverId,
+  });
 
   @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
+    // danbooru 的评级标签用短形式 rating:s/q/e
     final tags = <String>[
       if (query.tags.isNotEmpty) query.tags,
       if (query.rating != null)
@@ -29,7 +22,7 @@ class DanbooruRepository extends BooruRepository {
         },
     ].join(' ');
 
-    final response = await _dio.get(
+    final response = await dio.get(
       '/posts.json',
       queryParameters: {
         'tags': tags,
@@ -43,17 +36,17 @@ class DanbooruRepository extends BooruRepository {
       return const BooruPageResult(posts: [], hasMore: false);
     }
 
-    final baseUrl = _dio.options.baseUrl;
-    final posts = DanbooruParser.parsePosts(_serverId, baseUrl, data);
+    final baseUrl = dio.options.baseUrl;
+    final posts = DanbooruParser.parsePosts(serverId, baseUrl, data);
     final hasMore = posts.length >= query.limit;
 
     return BooruPageResult(
-        posts: posts.map((p) => p.toSummary(_serverId)).toList(), hasMore: hasMore);
+        posts: posts.map((p) => p.toSummary(serverId)).toList(), hasMore: hasMore);
   }
 
   @override
   Future<List<String>> suggestTags(String query, {int limit = 10}) async {
-    final response = await _dio.get(
+    final response = await dio.get(
       '/tags.json',
       queryParameters: {
         'search[name_matches]': '*$query*',
@@ -70,7 +63,7 @@ class DanbooruRepository extends BooruRepository {
 
   @override
   Future<List<String>> fetchTrendingTags({int limit = 20}) async {
-    final response = await _dio.get(
+    final response = await dio.get(
       '/tags.json',
       queryParameters: {
         'search[order]': 'count',
@@ -85,7 +78,7 @@ class DanbooruRepository extends BooruRepository {
   @override
   Future<bool> addFavorite(String postId) async {
     try {
-      await _dio.post('/favorites.json', data: {'post_id': postId});
+      await dio.post('/favorites.json', data: {'post_id': postId});
       return true;
     } catch (_) {
       return false;
@@ -95,7 +88,7 @@ class DanbooruRepository extends BooruRepository {
   @override
   Future<bool> removeFavorite(String postId) async {
     try {
-      await _dio.delete('/favorites/$postId.json');
+      await dio.delete('/favorites/$postId.json');
       return true;
     } catch (_) {
       return false;
@@ -105,7 +98,7 @@ class DanbooruRepository extends BooruRepository {
   @override
   Future<bool> isFavorite(String postId) async {
     try {
-      final response = await _dio.get('/favorites.json', queryParameters: {
+      final response = await dio.get('/favorites.json', queryParameters: {
         'post_id': postId,
         'limit': 1,
       });
@@ -119,7 +112,7 @@ class DanbooruRepository extends BooruRepository {
   @override
   Future<List<String>> getFavoriteIds() async {
     try {
-      final response = await _dio.get('/favorites.json', queryParameters: {
+      final response = await dio.get('/favorites.json', queryParameters: {
         'limit': 100,
       });
       final data = response.data;
@@ -129,27 +122,4 @@ class DanbooruRepository extends BooruRepository {
       return [];
     }
   }
-}
-
-extension _PostToSummary on BooruPost {
-  PostSummary toSummary(String serverId) => PostSummary(
-        id: id,
-        serverId: serverId,
-        thumbnailUrl: thumbnailUrl,
-        sampleUrl: sampleUrl,
-        originalUrl: originalUrl,
-        tags: tags,
-        tagGeneral: tagGeneral,
-        tagArtist: tagArtist,
-        tagCharacter: tagCharacter,
-        tagCopyright: tagCopyright,
-        tagMeta: tagMeta,
-        aspectRatio: aspectRatio,
-        width: width,
-        height: height,
-        rating: rating,
-        score: score,
-        source: source,
-        postUrl: postUrl,
-      );
 }
