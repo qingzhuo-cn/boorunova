@@ -34,7 +34,22 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _onServersChanged(List<BooruServer> servers) {
-    if (_activeServer != null) return;
+    if (_activeServer != null) {
+      // active 服务器被编辑（URL/凭据变化）→ 失效缓存并重建 repo 刷新
+      final updated = servers.where((s) => s.id == _activeServer!.id).firstOrNull;
+      if (updated == null) {
+        // active 服务器被删除：清空缓存并切到第一个可用站点
+        _repoCache.remove(_activeServer!.id);
+        _activeServer = null;
+      } else if (_configChanged(updated)) {
+        _repoCache.remove(updated.id);
+        _activeServer = null;
+        _selectServer(updated);
+        return;
+      } else {
+        return;
+      }
+    }
     if (servers.isEmpty) return;
     final settings = ref.read(settingsProvider);
     BooruServer? target;
@@ -44,6 +59,15 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (ref.read(booruPageStateProvider.notifier).currentQuery.isEmpty) {
       _selectServer(target ?? servers.first);
     }
+  }
+
+  bool _configChanged(BooruServer updated) {
+    final cur = _activeServer;
+    if (cur == null) return true;
+    return cur.baseUrl != updated.baseUrl ||
+        cur.type != updated.type ||
+        cur.login != updated.login ||
+        cur.apiKey != updated.apiKey;
   }
 
   void _initDefaultServer() {

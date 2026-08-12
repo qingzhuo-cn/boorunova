@@ -86,6 +86,15 @@ class _HomeContentState extends ConsumerState<HomeContent> {
 
   @override
   Widget build(BuildContext context) {
+    // 切换站点后滚动回顶，避免停留在旧内容中间
+    ref.listen<String?>(
+      booruPageStateProvider.select((s) => s.serverId),
+      (prev, next) {
+        if (prev != next && _scrollController.hasClients) {
+          _scrollController.jumpTo(0);
+        }
+      },
+    );
     final pageState = ref.watch(booruPageStateProvider);
     final currentQuery = ref.read(booruPageStateProvider.notifier).currentQuery;
     final gridCols = ref.watch(gridColumnsProvider);

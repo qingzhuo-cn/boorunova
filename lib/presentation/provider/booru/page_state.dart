@@ -8,6 +8,7 @@ class BooruPageState {
     this.error,
     this.currentPage = 1,
     this.hasMore = true,
+    this.serverId,
   });
 
   final List<PostSummary> posts;
@@ -15,6 +16,7 @@ class BooruPageState {
   final String? error;
   final int currentPage;
   final bool hasMore;
+  final String? serverId;
 
   BooruPageState copyWith({
     List<PostSummary>? posts,
@@ -22,6 +24,7 @@ class BooruPageState {
     String? error,
     int? currentPage,
     bool? hasMore,
+    String? serverId,
   }) {
     return BooruPageState(
       posts: posts ?? this.posts,
@@ -29,6 +32,7 @@ class BooruPageState {
       error: error ?? this.error,
       currentPage: currentPage ?? this.currentPage,
       hasMore: hasMore ?? this.hasMore,
+      serverId: serverId ?? this.serverId,
     );
   }
 }
@@ -47,8 +51,15 @@ class BooruPageNotifier extends StateNotifier<BooruPageState> {
   Future<void> switchServer(BooruRepository repo) async {
     _repo = repo;
     final seq = ++_requestSeq;
-    // 保留旧帖子直到新数据到达，避免闪空+转圈
-    state = state.copyWith(isLoading: true, error: null, currentPage: 1);
+    // 清空旧站点内容并进入加载态，让切换立即有反馈；
+    // serverId 变化会驱动 UI 滚动回顶
+    state = state.copyWith(
+      posts: const [],
+      isLoading: true,
+      error: null,
+      currentPage: 1,
+      serverId: repo.serverId,
+    );
     try {
       final result = await repo.searchPosts(BooruQuery(
         tags: _currentQuery,
