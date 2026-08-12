@@ -89,7 +89,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/search',
         name: 'search',
-        pageBuilder: (context, state) => _slidePage(const SearchPage()),
+        pageBuilder: (context, state) {
+          final extra = state.extra;
+          final initialQuery =
+              extra is Map ? (extra['initialQuery'] as String? ?? '') : '';
+          return _slidePage(SearchPage(initialQuery: initialQuery));
+        },
       ),
       GoRoute(
         path: '/blacklist',

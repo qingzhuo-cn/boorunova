@@ -25,7 +25,10 @@ class HomeSearchBar extends ConsumerWidget {
   final String currentQuery;
 
   Future<void> _openSearchPage(BuildContext context) async {
-    final query = await context.push<String>('/search');
+    final query = await context.push<String>(
+      '/search',
+      extra: {'initialQuery': currentQuery},
+    );
     if (query != null && query.trim().isNotEmpty) {
       onSubmitted(query.trim());
     }

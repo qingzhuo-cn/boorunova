@@ -8,7 +8,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
-  const SearchPage({super.key});
+  const SearchPage({super.key, this.initialQuery = ''});
+
+  /// 进入搜索页时预填的查询词，用于在已有搜索基础上编辑。
+  final String initialQuery;
 
   @override
   ConsumerState<SearchPage> createState() => _SearchPageState();
@@ -38,6 +41,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialQuery.isNotEmpty) {
+      _controller.text = widget.initialQuery;
+      _lastQuery = widget.initialQuery;
+      // 光标移到末尾，方便继续编辑
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: widget.initialQuery.length),
+      );
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focusNode.requestFocus();
     });
