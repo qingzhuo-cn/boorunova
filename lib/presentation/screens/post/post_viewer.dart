@@ -30,12 +30,21 @@ class PostViewer extends ConsumerStatefulWidget {
   ConsumerState<PostViewer> createState() => _PostViewerState();
 }
 
-class _PostViewerState extends ConsumerState<PostViewer> {
+class _PostViewerState extends ConsumerState<PostViewer>
+    with SingleTickerProviderStateMixin {
   late PageController _pageController;
   late int _currentIndex;
   bool _saving = false;
   bool _slideshowPlaying = false;
   Timer? _slideshowTimer;
+
+  // 跟手下滑 dismiss 状态
+  final _dragOffset = ValueNotifier<double>(0);
+  late final AnimationController _springController;
+  Animation<double>? _springAnim;
+  VoidCallback? _springListener;
+
+  static const _dismissThreshold = 140.0; // 超过此位移松手即关闭
 
   @override
   void initState() {
@@ -45,6 +54,10 @@ class _PostViewerState extends ConsumerState<PostViewer> {
       statusBarColor: Colors.transparent,
       systemNavigationBarColor: Colors.black,
     ));
+    _springController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
     _trackHistory(widget.posts[_currentIndex]);
@@ -53,6 +66,8 @@ class _PostViewerState extends ConsumerState<PostViewer> {
   @override
   void dispose() {
     _slideshowTimer?.cancel();
+    _springController.dispose();
+    _dragOffset.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -93,13 +108,23 @@ class _PostViewerState extends ConsumerState<PostViewer> {
     final favRepo = ref.watch(userFavoritesRepoProvider);
     final isFav = favRepo.isFavorite(post.id, serverId: post.serverId);
     final isVideo = _isVideoUrl(post.originalUrl) || _isVideoUrl(post.sampleUrl);
+    // 翻页方向：true=横向翻页（纵轴留给下滑关闭），false=纵向翻页（横轴留给侧滑关闭）
+    final horizontalPages = ref.watch(settingsProvider).viewerSwipeMode;
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black.withOpacity(0.2),
-        foregroundColor: Colors.white,
-        elevation: 0,
+      backgroundColor: Colors.transparent,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: ValueListenableBuilder<double>(
+          valueListenable: _dragOffset,
+          builder: (context, offset, child) {
+            final fade = 1.0 - (offset.abs() / 400).clamp(0.0, 1.0);
+            return Opacity(opacity: fade, child: child);
+          },
+          child: AppBar(
+            backgroundColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            elevation: 0,
         title: Text(
           '${_currentIndex + 1} / ${widget.posts.length}',
           style: const TextStyle(fontSize: 14),
@@ -158,23 +183,40 @@ class _PostViewerState extends ConsumerState<PostViewer> {
             },
           ),
         ],
+          ),
+        ),
       ),
       body: GestureDetector(
         onLongPress: _toggleSlideshow,
-        onVerticalDragEnd: (details) {
-          if (details.primaryVelocity == null) return;
-          if (details.primaryVelocity!.abs() < 500) return;
-          if (details.primaryVelocity! > 0) {
-            if (ref.read(settingsProvider).swipeDownAction == 'detail') {
-              _showDetails(context, post);
-            } else {
-              Navigator.of(context).pop();
-            }
-          } else {
-            Navigator.of(context).pop();
-          }
-        },
-        child: PageView.builder(
+        onVerticalDragStart:
+            horizontalPages ? (_) => _springController.stop() : null,
+        onVerticalDragUpdate:
+            horizontalPages ? (d) => _dragOffset.value += d.delta.dy : null,
+        onVerticalDragEnd:
+            horizontalPages ? (d) => _onDragEnd(d, post, true) : null,
+        onHorizontalDragStart:
+            horizontalPages ? null : (_) => _springController.stop(),
+        onHorizontalDragUpdate:
+            horizontalPages ? null : (d) => _dragOffset.value += d.delta.dx,
+        onHorizontalDragEnd:
+            horizontalPages ? null : (d) => _onDragEnd(d, post, false),
+        child: ValueListenableBuilder<double>(
+          valueListenable: _dragOffset,
+          builder: (context, offset, child) {
+            final progress = (offset.abs() / 400).clamp(0.0, 1.0);
+            return Container(
+              color: Colors.black.withOpacity(1.0 - 0.9 * progress),
+              child: Transform.translate(
+                offset:
+                    horizontalPages ? Offset(0, offset) : Offset(offset, 0),
+                child: Transform.scale(
+                  scale: 1.0 - 0.12 * progress,
+                  child: child,
+                ),
+              ),
+            );
+          },
+          child: PageView.builder(
           scrollDirection: ref.watch(settingsProvider).viewerSwipeMode ? Axis.horizontal : Axis.vertical,
           controller: _pageController,
           itemCount: widget.posts.length,
@@ -235,9 +277,42 @@ class _PostViewerState extends ConsumerState<PostViewer> {
                 ),
               );
           },
+          ),
         ),
       ),
     );
+  }
+
+  void _onDragEnd(DragEndDetails details, PostSummary post, bool horizontalPages) {
+    final offset = _dragOffset.value;
+    final velocity = details.primaryVelocity ?? 0;
+    // 横向翻页模式下快速下甩且下滑动作为详情：回弹并打开详情
+    if (horizontalPages &&
+        velocity > 900 &&
+        offset.abs() < _dismissThreshold &&
+        ref.read(settingsProvider).swipeDownAction == 'detail') {
+      _springBack();
+      _showDetails(context, post);
+      return;
+    }
+    // 位移过阈值或甩速足够：顺势关闭
+    if (offset.abs() > _dismissThreshold || velocity.abs() > 1200) {
+      Navigator.of(context).pop();
+      return;
+    }
+    _springBack();
+  }
+
+  void _springBack() {
+    if (_springListener != null && _springAnim != null) {
+      _springAnim!.removeListener(_springListener!);
+    }
+    _springAnim = Tween(begin: _dragOffset.value, end: 0.0).animate(
+      CurvedAnimation(parent: _springController, curve: Curves.easeOutCubic),
+    );
+    _springListener = () => _dragOffset.value = _springAnim!.value;
+    _springAnim!.addListener(_springListener!);
+    _springController.forward(from: 0);
   }
 
   bool _isVideoUrl(String url) {

@@ -224,6 +224,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
                               key: ValueKey('grid_$gridCols'),
                               crossAxisCount: gridCols,
                               posts: filteredPosts,
+                              enablePeekPreview: !isSelectionMode,
                               onFavorite: (index) {
                                 final post = filteredPosts[index];
                                 final repo = ref.read(userFavoritesRepoProvider);

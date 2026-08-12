@@ -18,6 +18,7 @@ class Timeline extends StatelessWidget {
     this.onLongPress,
     this.crossAxisCount,
     this.onFavorite,
+    this.enablePeekPreview = false,
   });
 
   final List<PostSummary> posts;
@@ -29,6 +30,8 @@ class Timeline extends StatelessWidget {
   final void Function(int index)? onLongPress;
   final int? crossAxisCount;
   final void Function(int index)? onFavorite;
+  /// 长按浮起放大镜预览（非多选模式下生效）。
+  final bool enablePeekPreview;
 
   @override
   Widget build(BuildContext context) {
@@ -37,8 +40,8 @@ class Timeline extends StatelessWidget {
 
     return AppSliverMasonryGrid(
       crossAxisCount: axisCount,
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
+      mainAxisSpacing: 2,
+      crossAxisSpacing: 2,
       childCount: posts.length + (isLoading ? axisCount * 2 : 0),
       itemBuilder: (context, index) {
         if (index < posts.length) {
@@ -47,6 +50,7 @@ class Timeline extends StatelessWidget {
             child: _PostTile(
               post: posts[index],
               onTap: () => onPostTap(index),
+              enablePeekPreview: enablePeekPreview,
               onLongPress: onLongPress != null ? () => onLongPress!(index) : null,
               selectionMode: selectionMode,
               isSelected: selectedIds.contains(posts[index].id),
@@ -113,6 +117,7 @@ class _PostTile extends StatelessWidget {
     this.isSelected = false,
     this.onSelectionToggle,
     this.onFavorite,
+    this.enablePeekPreview = false,
   });
 
   final PostSummary post;
@@ -122,12 +127,41 @@ class _PostTile extends StatelessWidget {
   final bool isSelected;
   final VoidCallback? onSelectionToggle;
   final VoidCallback? onFavorite;
+  final bool enablePeekPreview;
+
+  void _showPeekPreview(BuildContext context) {
+    final url = post.sampleUrl.isNotEmpty ? post.sampleUrl : post.thumbnailUrl;
+    if (url.isEmpty) return;
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Colors.black.withOpacity(0.7),
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (dialogCtx, _, __) {
+        return _PeekPreviewOverlay(
+          heroTag: 'post_${post.serverId}_${post.id}',
+          url: url,
+          onDismiss: () => Navigator.of(dialogCtx).pop(),
+        );
+      },
+      transitionBuilder: (context, animation, _, child) {
+        final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutBack);
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(scale: curved, child: child),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: selectionMode ? onSelectionToggle : onTap,
-      onLongPress: onLongPress,
+      onLongPress: enablePeekPreview && !selectionMode
+          ? () => _showPeekPreview(context)
+          : onLongPress,
       child: Hero(
         tag: selectionMode
             ? 'post_${post.serverId}_${post.id}_batch'
@@ -221,6 +255,74 @@ class _PostTile extends StatelessWidget {
         ),
       ),
       );
+  }
+}
+
+/// 长按速览浮层：圆角大图 + 松手即关。
+class _PeekPreviewOverlay extends StatelessWidget {
+  const _PeekPreviewOverlay({
+    required this.heroTag,
+    required this.url,
+    required this.onDismiss,
+  });
+
+  final String heroTag;
+  final String url;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return GestureDetector(
+      onTap: onDismiss,
+      onLongPressEnd: (_) => onDismiss(),
+      child: Material(
+        color: Colors.transparent,
+        child: Center(
+          child: Hero(
+            tag: heroTag,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: size.width * 0.85,
+                  maxHeight: size.height * 0.7,
+                ),
+                child: ExtendedImage.network(
+                  url,
+                  fit: BoxFit.contain,
+                  cache: true,
+                  loadStateChanged: (state) {
+                    if (state.extendedImageLoadState == LoadState.loading) {
+                      return Container(
+                        width: 200,
+                        height: 260,
+                        color: Colors.black54,
+                        child: const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        ),
+                      );
+                    }
+                    if (state.extendedImageLoadState == LoadState.failed) {
+                      return Container(
+                        width: 200,
+                        height: 260,
+                        color: Colors.black54,
+                        child: const Center(
+                          child: Icon(Icons.broken_image_outlined,
+                              color: Colors.white54, size: 40),
+                        ),
+                      );
+                    }
+                    return state.completedWidget;
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
