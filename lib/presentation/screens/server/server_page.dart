@@ -63,6 +63,7 @@ class _ServerPageState extends ConsumerState<ServerPage> {
               },
             )
           : ListView(
+              key: ValueKey('server_list_${servers.length}'),
               padding: const EdgeInsets.symmetric(vertical: 8),
               children: [
                 if (servers.isNotEmpty) ...[

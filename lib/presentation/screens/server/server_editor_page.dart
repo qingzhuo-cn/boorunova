@@ -115,8 +115,14 @@ class _ServerEditorPageState extends ConsumerState<ServerEditorPage> {
     }
 
     if (mounted) {
-      ref.invalidate(userServerRepoProvider);
+      final container = ProviderScope.containerOf(context, listen: false);
       Navigator.of(context).pop();
+      // 延迟到退出转场结束后再刷新列表：立即 invalidate 会让 ServerPage
+      // 在 pop 转场期间重建，列表结构突变时残留 Ink 动画在 sliver 子节点上
+      // 绘制会触发空指针崩溃（release 下表现为整页空白）
+      Future.delayed(const Duration(milliseconds: 400), () {
+        container.invalidate(userServerRepoProvider);
+      });
     }
   }
 
