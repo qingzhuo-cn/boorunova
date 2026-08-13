@@ -36,6 +36,26 @@ class BooruPageResult {
   final bool hasMore;
 }
 
+/// 图集（Pool）：一组有序的相关帖子合集。
+class BooruPool {
+  const BooruPool({
+    required this.id,
+    required this.name,
+    this.description = '',
+    this.postCount = 0,
+    this.postIds = const [],
+  });
+
+  final String id;
+  final String name;
+  final String description;
+  final int postCount;
+  final List<String> postIds;
+
+  /// 显示名：下划线转空格。
+  String get displayName => name.replaceAll('_', ' ');
+}
+
 class PostSummary {
   const PostSummary({
     required this.id,
@@ -85,6 +105,7 @@ abstract class BooruRepository {
   Future<BooruPageResult> searchPosts(BooruQuery query);
   Future<List<String>> suggestTags(String query, {int limit = 10});
   Future<List<String>> fetchTrendingTags({int limit = 20}) async => [];
+  Future<List<BooruPool>> fetchPools({int page = 1, int limit = 20}) async => [];
   Future<bool> addFavorite(String postId);
   Future<bool> removeFavorite(String postId);
   Future<bool> isFavorite(String postId);

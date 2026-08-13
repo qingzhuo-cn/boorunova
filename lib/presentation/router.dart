@@ -2,11 +2,14 @@ import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/presentation/screens/artists/artists_page.dart';
 import 'package:boorunova/presentation/screens/blacklist/blacklist_page.dart';
 import 'package:boorunova/presentation/screens/downloads/downloads_page.dart';
+import 'package:boorunova/presentation/screens/explore/explore_page.dart';
 import 'package:boorunova/presentation/screens/favorites/favorites_page.dart';
 import 'package:boorunova/presentation/screens/forum/forum_page.dart';
 import 'package:boorunova/presentation/screens/history/history_page.dart';
 import 'package:boorunova/presentation/screens/history/search_history_page.dart';
 import 'package:boorunova/presentation/screens/home/home_page.dart';
+import 'package:boorunova/presentation/screens/pools/pool_detail_page.dart';
+import 'package:boorunova/presentation/screens/pools/pools_page.dart';
 import 'package:boorunova/presentation/screens/post/post_detail_page.dart';
 import 'package:boorunova/presentation/screens/post/post_viewer.dart';
 import 'package:boorunova/presentation/screens/search/search_page.dart';
@@ -94,6 +97,28 @@ final routerProvider = Provider<GoRouter>((ref) {
           final initialQuery =
               extra is Map ? (extra['initialQuery'] as String? ?? '') : '';
           return _slidePage(SearchPage(initialQuery: initialQuery));
+        },
+      ),
+      GoRoute(
+        path: '/explore',
+        name: 'explore',
+        pageBuilder: (context, state) => _slidePage(const ExplorePage()),
+      ),
+      GoRoute(
+        path: '/pools',
+        name: 'pools',
+        pageBuilder: (context, state) => _slidePage(const PoolsPage()),
+      ),
+      GoRoute(
+        path: '/pools/:id',
+        name: 'pool-detail',
+        pageBuilder: (context, state) {
+          final extra = state.extra;
+          final name = extra is Map ? (extra['name'] as String? ?? '') : '';
+          return _slidePage(PoolDetailPage(
+            poolId: state.pathParameters['id']!,
+            poolName: name,
+          ));
         },
       ),
       GoRoute(

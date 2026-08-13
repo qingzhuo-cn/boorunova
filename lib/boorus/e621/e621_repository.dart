@@ -92,6 +92,32 @@ class E621Repository extends BaseBooruRepository {
   }
 
   @override
+  Future<List<BooruPool>> fetchPools({int page = 1, int limit = 20}) async {
+    try {
+      final response = await dio.get(
+        '/pools.json',
+        queryParameters: {'page': page, 'limit': limit},
+      );
+      final data = response.data;
+      if (data is! List) return [];
+      return data.whereType<Map<String, dynamic>>().map((m) {
+        final ids = (m['post_ids'] as List? ?? [])
+            .map((i) => i.toString())
+            .toList();
+        return BooruPool(
+          id: m['id']?.toString() ?? '',
+          name: m['name']?.toString() ?? '',
+          description: m['description']?.toString() ?? '',
+          postCount: (m['post_count'] as int?) ?? ids.length,
+          postIds: ids,
+        );
+      }).where((p) => p.id.isNotEmpty).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  @override
   Future<bool> addFavorite(String postId) async {
     try {
       await dio.post('/favorites.json', data: {'post_id': postId});

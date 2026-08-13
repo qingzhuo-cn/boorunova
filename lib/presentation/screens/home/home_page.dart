@@ -328,7 +328,12 @@ class _HomePageState extends ConsumerState<HomePage> {
             ListTile(
               leading: const Icon(Icons.explore_outlined),
               title: const Text('探索'),
-              onTap: () { Navigator.pop(context); },
+              onTap: () { Navigator.pop(context); context.push('/explore'); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.collections_outlined),
+              title: const Text('图集'),
+              onTap: () { Navigator.pop(context); context.push('/pools'); },
             ),
             const Divider(),
             if (_activeServer != null && _hasCapability((c) => c.forums))

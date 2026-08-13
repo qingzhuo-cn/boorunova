@@ -36,6 +36,10 @@ abstract class BaseBooruRepository implements BooruRepository {
   @override
   Future<List<String>> getFavoriteIds() async => [];
 
+  /// 默认实现：引擎不支持图集时返回空列表。
+  @override
+  Future<List<BooruPool>> fetchPools({int page = 1, int limit = 20}) async => [];
+
   /// 拼接搜索标签：把用户输入标签与评级过滤合并为站点查询串。
   ///
   /// [ratingMap] 为引擎特定的评级映射，例如 danbooru 用 `rating:s`，
