@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/data/repository/favorites/user_favorite_repo.dart';
 import 'package:boorunova/presentation/widgets/sliver_masonry_grid.dart';
@@ -65,7 +67,7 @@ class Timeline extends StatelessWidget {
             ),
           );
         }
-        return const _ShimmerTile();
+        return _ShimmerTile(index: index);
       },
     );
   }
@@ -81,31 +83,37 @@ class _AnimatedTile extends StatefulWidget {
 }
 
 class _AnimatedTileState extends State<_AnimatedTile> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _anim;
+  AnimationController? _controller;
+  Animation<double>? _anim;
+  Timer? _delayTimer;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
-    _anim = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
-    Future.delayed(Duration(milliseconds: (widget.index % 20) * 15), () {
-      if (mounted) _controller.forward();
+    final controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+    _controller = controller;
+    _anim = CurvedAnimation(parent: controller, curve: Curves.easeOutCubic);
+    // Timer 可在 dispose 时取消，避免快速滚动后仍排队 forward
+    _delayTimer = Timer(Duration(milliseconds: (widget.index % 20) * 15), () {
+      if (mounted) controller.forward();
     });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _delayTimer?.cancel();
+    _controller?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final anim = _anim;
+    if (anim == null) return widget.child;
     return FadeTransition(
-      opacity: _anim,
+      opacity: anim,
       child: Transform.translate(
-        offset: Offset(0, 20 * (1 - _anim.value)),
+        offset: Offset(0, 20 * (1 - anim.value)),
         child: widget.child,
       ),
     );
@@ -212,7 +220,14 @@ class _PostTile extends StatelessWidget {
                         ),
                         child: Consumer(
                           builder: (context, ref, _) {
-                            final isFav = ref.watch(userFavoritesRepoProvider).isFavorite(post.id, serverId: post.serverId);
+                            // select 精确订阅：只在该帖收藏状态翻转时重建此图标，
+                            // 其余 tile 的收藏变化不再触发整屏重建
+                            final isFav = ref.watch(
+                              userFavoritesRepoProvider.select(
+                                (repo) =>
+                                    repo.isFavorite(post.id, serverId: post.serverId),
+                              ),
+                            );
                             return Icon(
                               isFav ? Icons.favorite : Icons.favorite_border,
                               size: 14,
@@ -334,13 +349,16 @@ class _PeekPreviewOverlay extends StatelessWidget {
 }
 
 class _ShimmerTile extends StatelessWidget {
-  const _ShimmerTile();
+  const _ShimmerTile({this.index = 0});
+
+  final int index;
+
+  // 固定轮换高度（按 index），避免每次重建随机变化导致瀑布流抖动
+  static const _heights = [120.0, 160.0, 140.0, 180.0, 100.0, 200.0];
 
   @override
   Widget build(BuildContext context) {
-    final heights = [120.0, 160.0, 140.0, 180.0, 100.0, 200.0];
-    final height =
-        heights[DateTime.now().millisecondsSinceEpoch % heights.length];
+    final height = _heights[index % _heights.length];
 
     return Shimmer.fromColors(
       baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
