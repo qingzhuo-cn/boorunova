@@ -133,7 +133,7 @@ class _PostViewerState extends ConsumerState<PostViewer>
           if (widget.posts.length > 1 && !isVideo)
             IconButton(
               icon: Icon(_slideshowPlaying ? Icons.pause_circle_filled : Icons.auto_awesome),
-              tooltip: _slideshowPlaying ? '鍋滄鑷姩鍒囨崲' : '鑷姩鍒囨崲',
+              tooltip: _slideshowPlaying ? '停止自动切换' : '自动切换',
               onPressed: _toggleSlideshow,
             ),
           IconButton(
@@ -143,7 +143,7 @@ class _PostViewerState extends ConsumerState<PostViewer>
           ),
           IconButton(
             icon: const Icon(Icons.info_outline),
-            tooltip: '璇︽儏',
+            tooltip: T.postDetails,
             onPressed: () => _showDetails(context, post),
           ),
           IconButton(
