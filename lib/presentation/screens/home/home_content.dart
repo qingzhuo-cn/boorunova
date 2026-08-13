@@ -16,11 +16,35 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 String _friendlyError(String raw) {
-  if (raw.contains('connection timeout') || raw.contains('Connection timeout')) {
+  if (raw.contains('connection timeout') ||
+      raw.contains('Connection timeout') ||
+      raw.contains('connectionTimeout')) {
     return '连接超时，请检查网络或尝试使用 Hosts 功能';
+  }
+  if (raw.contains('receiveTimeout') || raw.contains('Receive timeout')) {
+    return '服务器响应超时，请稍后重试';
   }
   if (raw.contains('Connection refused')) {
     return '连接被拒绝，请检查服务器地址是否正确';
+  }
+  if (raw.contains('Failed host lookup') ||
+      raw.contains('No address associated with hostname')) {
+    return '域名解析失败，请检查网络或服务器地址';
+  }
+  if (raw.contains('HandshakeException') || raw.contains('CERTIFICATE')) {
+    return '安全连接失败（证书校验未通过），请检查系统时间或网络环境';
+  }
+  if (RegExp(r'status (code )?of 403').hasMatch(raw)) {
+    return '访问被拒绝（403），可能需要登录或 API 密钥';
+  }
+  if (RegExp(r'status (code )?of 404').hasMatch(raw)) {
+    return '资源不存在（404），服务器地址可能已变更';
+  }
+  if (RegExp(r'status (code )?of 429').hasMatch(raw)) {
+    return '请求过于频繁（429），请稍后再试';
+  }
+  if (RegExp(r'status (code )?of 5\d\d').hasMatch(raw)) {
+    return '服务器内部错误（5xx），请稍后再试';
   }
   if (raw.contains('SocketException')) {
     return '网络异常，请检查网络连接';

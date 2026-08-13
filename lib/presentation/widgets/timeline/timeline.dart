@@ -37,6 +37,9 @@ class Timeline extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final axisCount = crossAxisCount ?? (screenWidth / 180).round().clamp(2, 6);
+    // 按实际显示宽度解码缩略图：物理像素 = 逻辑宽度 × DPR，防 OOM 且不糊
+    final dpr = MediaQuery.of(context).devicePixelRatio;
+    final decodeWidth = (screenWidth / axisCount * dpr).round();
 
     return AppSliverMasonryGrid(
       crossAxisCount: axisCount,
@@ -49,6 +52,7 @@ class Timeline extends StatelessWidget {
             index: index,
             child: _PostTile(
               post: posts[index],
+              decodeWidth: decodeWidth,
               onTap: () => onPostTap(index),
               enablePeekPreview: enablePeekPreview,
               onLongPress: onLongPress != null ? () => onLongPress!(index) : null,
@@ -118,9 +122,11 @@ class _PostTile extends StatelessWidget {
     this.onSelectionToggle,
     this.onFavorite,
     this.enablePeekPreview = false,
+    this.decodeWidth = 360,
   });
 
   final PostSummary post;
+  final int decodeWidth;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
   final bool selectionMode;
@@ -177,7 +183,8 @@ class _PostTile extends StatelessWidget {
                   post.thumbnailUrl,
                   fit: BoxFit.cover,
                   cache: true,
-                  cacheWidth: 360,
+                  cacheWidth: decodeWidth,
+                  gaplessPlayback: true,
                   loadStateChanged: (state) {
                     if (state.extendedImageLoadState == LoadState.loading) {
                       return const _ShimmerTile();
