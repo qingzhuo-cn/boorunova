@@ -106,8 +106,4 @@ abstract class BooruRepository {
   Future<List<String>> suggestTags(String query, {int limit = 10});
   Future<List<String>> fetchTrendingTags({int limit = 20}) async => [];
   Future<List<BooruPool>> fetchPools({int page = 1, int limit = 20}) async => [];
-  Future<bool> addFavorite(String postId);
-  Future<bool> removeFavorite(String postId);
-  Future<bool> isFavorite(String postId);
-  Future<List<String>> getFavoriteIds();
 }

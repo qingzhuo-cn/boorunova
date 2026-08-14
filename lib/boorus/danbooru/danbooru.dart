@@ -25,9 +25,7 @@ class Danbooru extends Booru {
         notes: true,
         voting: true,
         artistPages: true,
-        characterPages: true,
-        favorites: true,
-        syntaxHighlighting: true,
+        characterPages: true,        syntaxHighlighting: true,
       );
 
   @override

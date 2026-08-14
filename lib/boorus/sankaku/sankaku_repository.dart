@@ -62,42 +62,4 @@ class SankakuRepository extends BaseBooruRepository {
     return SankakuParser.parseSuggestions(data);
   }
 
-  @override
-  Future<bool> addFavorite(String postId) async {
-    try {
-      await dio.post('/post/$postId/favorites.json');
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  @override
-  Future<bool> removeFavorite(String postId) async {
-    try {
-      await dio.delete('/post/$postId/favorites.json');
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  @override
-  Future<bool> isFavorite(String postId) async {
-    try {
-      final response = await dio.get('/favorite/index.json', queryParameters: {
-        'post_id': postId,
-        'limit': 1,
-      });
-      final data = response.data;
-      return data is List && data.isNotEmpty;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  @override
-  Future<List<String>> getFavoriteIds() async {
-    return [];
-  }
 }

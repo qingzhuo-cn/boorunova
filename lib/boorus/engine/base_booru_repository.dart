@@ -20,22 +20,6 @@ abstract class BaseBooruRepository implements BooruRepository {
   @override
   final String serverId;
 
-  /// 默认实现：引擎不支持收藏时返回 false。
-  @override
-  Future<bool> addFavorite(String postId) async => false;
-
-  /// 默认实现：引擎不支持收藏时返回 false。
-  @override
-  Future<bool> removeFavorite(String postId) async => false;
-
-  /// 默认实现：引擎不支持收藏时返回 false。
-  @override
-  Future<bool> isFavorite(String postId) async => false;
-
-  /// 默认实现：引擎不支持收藏列表时返回空列表。
-  @override
-  Future<List<String>> getFavoriteIds() async => [];
-
   /// 默认实现：引擎不支持图集时返回空列表。
   @override
   Future<List<BooruPool>> fetchPools({int page = 1, int limit = 20}) async => [];

@@ -18,9 +18,7 @@ class GelbooruV2 extends Booru {
   String get baseUrl => 'https://gelbooru.com';
 
   @override
-  BooruCapabilities get capabilities => const BooruCapabilities(
-        favorites: true,
-        comments: true,
+  BooruCapabilities get capabilities => const BooruCapabilities(        comments: true,
       );
 
   @override

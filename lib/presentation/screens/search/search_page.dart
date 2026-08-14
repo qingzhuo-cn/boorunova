@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:boorunova/data/repository/search_history/search_history_repo.dart';
+import 'package:boorunova/presentation/provider/booru/page_state.dart';
 import 'package:boorunova/presentation/provider/booru/tag_suggestions.dart';
 import 'package:boorunova/presentation/provider/booru/trending_tags.dart';
 import 'package:flutter/material.dart';
@@ -90,8 +91,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final searchHistory = ref.watch(searchHistoryRepoProvider).getAll();
+    final serverId =
+        ref.watch(booruPageStateProvider.select((s) => s.serverId ?? ''));
     final suggestions = _lastQuery.isNotEmpty
-        ? ref.watch(tagSuggestionProvider(_lastQuery))
+        ? ref.watch(
+            tagSuggestionProvider((serverId: serverId, query: _lastQuery)))
         : const AsyncData<List<String>>([]);
     final trendingAsync = ref.watch(trendingTagsProvider);
 
