@@ -21,6 +21,11 @@ abstract class BaseBooruRepository implements BooruRepository {
   final String serverId;
 
   /// 默认实现：引擎不支持图集时返回空列表。
+  ///
+  /// pool 可用性实测（2026-08）：danbooru / e621 / moebooru 匿名可访问，已各自实现；
+  /// gelbooru / rule34 需 api_key+user_id 认证（匿名 401 / Missing authentication），
+  /// safebooru 的 DAPI 不支持 pool 接口，sankaku 需 token —— 故这些引擎保持默认空实现，
+  /// 属站点认证限制而非实现遗漏。
   @override
   Future<List<BooruPool>> fetchPools({int page = 1, int limit = 20}) async => [];
 
