@@ -26,7 +26,44 @@ subprojects {
     project.evaluationDependsOn(':app')
 }
 
+/**
+ * 给插件项目补上 `flutter` 扩展（android.flutter）。
+ *
+ * 背景：Flutter 只为 **app 项目**注册 `flutter` 扩展（内含 compileSdkVersion /
+ * minSdkVersion / targetSdkVersion / ndkVersion）。而若干依赖的 android/build.gradle
+ * 仍是旧模板写法：
+ *
+ *     android { compileSdk flutter.compileSdkVersion }
+ *
+ * 在 `android { }` 闭包里，`flutter` 会先按 android 扩展解析，找不到就变成
+ * 属性访问 android.flutter → 直接报
+ * "Could not get unknown property 'flutter' for extension 'android' of type
+ *  com.android.build.gradle.LibraryExtension"，整个构建在**插件求值阶段**失败，
+ * 后面看到的 compileSdkVersion is not specified / substring on null 都是它的余波。
+ *
+ * 本机曾经不复现，是因为 pub 缓存里的 gal 副本被就地改成 `compileSdk 36`——
+ * 依赖缓存被改过的环境下"本机能构建"是不可信的。CI 用不可变的 pub.dev 原件，
+ * 必炸。
+ *
+ * 在插件应用 com.android.library 的那一刻（早于其 android{} 求值）补上同名
+ * 扩展即可，一次修好所有用旧模板的插件（实测 gal-2.3.3 与
+ * package_info_plus-9.0.1 都用了这个写法）。取值与 app/build.gradle 保持一致。
+ */
+class FlutterSdkVersions {
+    int compileSdkVersion = 36
+    int minSdkVersion = 26
+    int targetSdkVersion = 34
+    String ndkVersion = '25.1.8937393'
+}
 
+subprojects { proj ->
+    proj.plugins.withId('com.android.library') {
+        def androidExt = proj.extensions.findByName('android')
+        if (androidExt != null && androidExt.extensions.findByName('flutter') == null) {
+            androidExt.extensions.create('flutter', FlutterSdkVersions)
+        }
+    }
+}
 
 tasks.register("clean", Delete) {
     delete rootProject.buildDir

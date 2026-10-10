@@ -122,7 +122,8 @@ jobs:
           flutter test
 
       - name: 安装编译所需的 Android SDK 平台
-        # 依赖（gal）里写死 compileSdk 36，runner 预装的 SDK 未必带这个平台。
+        # 保险丝：app 与插件项目都用 compileSdk 36，runner 通常已带该平台
+        # （实测已装 android-34/35/36/37），装了就是个快速空操作。
         run: |
           set -euo pipefail
           SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
