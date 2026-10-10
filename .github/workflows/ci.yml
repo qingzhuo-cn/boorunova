@@ -50,5 +50,41 @@ jobs:
           grep -A3 'READ_EXTERNAL_STORAGE' "$M" | grep -q 'maxSdkVersion="32"'
           test -f android/app/src/main/res/xml/data_extraction_rules.xml
           test -f android/app/src/main/res/xml/backup_rules.xml
-          test -x android/gradlew || test -f android/gradlew
+          # 严格断言可执行位：从 Windows 提交 gradlew 时权限位会丢，
+          # CI 上没有可执行位的 wrapper 会静默退回系统 Gradle（版本≠锁定的
+          # 8.7），报错却是一句与原因无关的插件求值失败。此前这里写的是
+          # `test -x || test -f`，正好放过了这个 bug。
+          test -x android/gradlew
+          test -f android/gradle/wrapper/gradle-wrapper.jar
           echo "清单与备份策略断言通过"
+
+      - name: 安装编译所需的 Android SDK 平台
+        # 依赖（gal）写死 compileSdk 36；runner 通常已带，装了就是个快速空操作，
+        # 免得镜像变化时构建以一句看不懂的错失败。
+        run: |
+          set -euo pipefail
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+          ls "${ANDROID_HOME}/platforms" | tail -3
+
+      - name: 构建 debug APK
+        # 真正的"能不能构建"检查：wrapper 能不能跑、AGP 能不能配置每个插件
+        # 项目、清单能不能合并。这一条就是能抓住 gradlew 丢权限位之类问题的
+        # 检查，只是它的报错通常很难读，所以上面先把可执行位断言掉。
+        run: flutter build apk --debug --target-platform android-arm64
+
+      - name: 校验装机清单（对 APK 本身）
+        # 源码断言查的是"我们写了什么"，这里查的是"最终打进包的是什么"：
+        # 插件可能往合并清单里塞权限，只有解包才看得见。
+        run: |
+          set -euo pipefail
+          APK=build/app/outputs/flutter-apk/app-debug.apk
+          test -f "$APK"
+          AAPT2=$(ls -d "${ANDROID_HOME}"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -n1)
+          "$AAPT2" dump xmltree "$APK" --file AndroidManifest.xml > /tmp/manifest.txt
+          grep -q 'allowBackup(0x01010280)=false' /tmp/manifest.txt
+          ! grep -q 'REQUEST_INSTALL_PACKAGES' /tmp/manifest.txt
+          ! grep -q 'POST_NOTIFICATIONS' /tmp/manifest.txt
+          grep -A3 'READ_EXTERNAL_STORAGE' /tmp/manifest.txt | grep -q 'maxSdkVersion'
+          echo "装机清单断言通过"
