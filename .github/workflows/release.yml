@@ -1,16 +1,87 @@
 name: Release
 
-# tag 触发：v1.8.2 这样的 tag 推上去即产出并上传安装包。
+# tag 触发：v1.8.x 这样的 tag 推上去即产出并上传安装包。
 # 手工发布容易漏掉 --target-platform 与签名校验，这里固化成流程。
+#
+# 也支持手工触发（workflow_dispatch）：用于**只跑工具链诊断**而不发布，
+# 以及在没有 tag 的情况下重跑一次发布。
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  # 门禁 + 工具链诊断。这个 job **不需要任何密钥**，因此总能跑。
+  #
+  # 为什么要单独一个 job：
+  # 1) 没配签名 secrets 时，发布构建必然失败（还原出空的密钥文件），
+  #    用户只会看到一次看不懂的红叉。这里把"有没有 secrets"变成构建 job 的
+  #    开关，没配就明确跳过并给出提示。
+  # 2) 依赖里 gal 写死 compileSdk 36，CI 上曾出现 ":gal 的 compileSdkVersion
+  #    为 null"（flutter.groovy:929 的 substring 崩溃）而本机不复现。这类
+  #    环境差异必须在这里取证，不能靠猜。
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      has_secrets: ${{ steps.gate.outputs.has_secrets }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.24.0
+          channel: stable
+          cache: true
+
+      - name: 检查签名 secrets
+        id: gate
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+            echo "签名 secrets 已配置，将执行发布构建。"
+          else
+            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=跳过发布构建::未配置签名 secrets（KEYSTORE_BASE64 等），发布构建跳过。配置方法见 docs/RELEASING.md。"
+          fi
+
+      - name: 工具链诊断（打印环境事实与 Gradle 配置结果）
+        run: |
+          set -uo pipefail
+          echo "===== 环境 ====="
+          echo "ANDROID_HOME=${ANDROID_HOME:-未设置}"
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-未设置}"
+          java -version 2>&1 | head -2
+          flutter --version
+          echo "----- 已安装的 platforms -----"
+          ls "${ANDROID_HOME:-/nonexistent}/platforms" 2>&1 || true
+          echo "----- 已安装的 build-tools -----"
+          ls "${ANDROID_HOME:-/nonexistent}/build-tools" 2>&1 || true
+
+          flutter pub get
+
+          echo "===== Gradle 配置（触发所有子项目求值）====="
+          cd android
+          ./gradlew projects --stacktrace 2>&1 | tail -60 || true
+          echo "===== 各项目 compileSdkVersion ====="
+          ./gradlew -q flutterBuildDebug 2>/dev/null || true
+
+      - name: 诊断结论
+        run: |
+          echo "以上日志用于确认：Gradle wrapper 版本、AGP 版本、JDK 版本、"
+          echo "以及 :gal 项目的 compileSdkVersion 是否被正确解析。"
+          echo "TOOLCHAIN_DIAGNOSTICS_DONE"
+
   build-and-release:
+    needs: preflight
+    # 没有签名 secrets 就不构建：必然失败的构建只会制造一次看不懂的红叉。
+    if: needs.preflight.outputs.has_secrets == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +95,7 @@ jobs:
           cache: true
 
       - name: 还原签名密钥
-        # 三个 Secret：KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD
+        # 四个 Secret：KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD
         # 密钥本体永不入库（android/.gitignore 已忽略 *.jks 与 key.properties）。
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -32,7 +103,9 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
+          set -euo pipefail
           echo "$KEYSTORE_BASE64" | base64 -d > android/release.jks
+          test -s android/release.jks || { echo "密钥文件为空：请检查 KEYSTORE_BASE64"; exit 1; }
           cat > android/key.properties <<EOF
           storeFile=../release.jks
           storePassword=$KEYSTORE_PASSWORD
@@ -49,18 +122,18 @@ jobs:
           flutter test
 
       - name: 安装编译所需的 Android SDK 平台
-        # 依赖里（gal）写死 compileSdk 36，runner 预装的 SDK 未必带这个平台；
-        # 缺了就报成一句看不懂的 "compileSdkVersion is not specified"。
+        # 依赖（gal）里写死 compileSdk 36，runner 预装的 SDK 未必带这个平台。
         run: |
           set -euo pipefail
           SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
           "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
+          ls "${ANDROID_HOME}/platforms"
 
       - name: 构建（arm64 专用包 + 双 ABI 通用包）
         # 不加 --target-platform 会把 armeabi-v7a 一起打进通用包（38MB → 56MB），
         # 与 README 声明的体积不符——这条参数是发布正确性的一部分。
-        run: flutter build apk --release --target-platform android-arm64,android-x64
+        run: flutter build apk --release --target-platform android-arm64,android-x64 --stacktrace
 
       - name: 校验装机清单（对发布包本身）
         # 权威断言：对象是打包进 APK 的清单，不是中间产物
@@ -79,6 +152,7 @@ jobs:
         # 证书指纹写死：用错密钥（例如 debug 签名或新 keystore）必须当场失败，
         # 而不是等用户装上后 INSTALL_FAILED_UPDATE_INCOMPATIBLE。
         run: |
+          set -euo pipefail
           APK=build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
           CERT=$(apksigner verify --print-certs "$APK" | grep 'certificate SHA-256 digest' | head -n1 | awk '{print $NF}')
           echo "signer cert sha256: $CERT"
