@@ -1,0 +1,89 @@
+name: 站点核验（nightly）
+
+# OPT §6.2：DNS 污染环境下没法在本地对真实站点验证，而站点改版是**静默**失效
+# （用户侧表现为「这个站刷不出来了」）。这里每晚在海外 runner 上对全部预置
+# 站点做一次协议特征核验：只断言协议、不取内容、不落盘。
+#
+# 失败处理：写进 Job Summary + 自动开 issue（同标题只开一个）+ **最后让 job 变红**。
+# 只开 issue 不让 job 红的话，Actions 页面永远绿，没人会注意到。
+
+on:
+  schedule:
+    # 18:00 UTC = 次日 02:00 北京时间（避开各站的备份/维护时段）
+    - cron: '0 18 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    # 十个站点 × 15s 超时 + 可达性复测，正常几分钟；给一个明确上界，
+    # 免得某个站挂起把 job 拖到默认的几小时。
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # 与 ci.yml / release.yml 保持一致，避免「夜检红、CI 绿」的错位
+          flutter-version: 3.24.0
+          channel: stable
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: 真站点协议核验
+        id: probe
+        # 失败也要继续，好让下面两步把结论写进 summary / issue
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          flutter test test/nightly_site_health_test.dart \
+            --dart-define=boorunova.nightly=true \
+            --reporter expanded 2>&1 | tee probe.log
+
+      - name: 结果写进 summary
+        if: always()
+        run: |
+          {
+            echo '## 站点核验结果'
+            echo
+            if [ '${{ steps.probe.outcome }}' = 'success' ]; then
+              echo '全部预置站点的协议特征都还成立 ✅'
+            else
+              echo '有站点不再符合预期协议（或连不上）❌ —— 见日志尾部'
+            fi
+            echo
+            echo '---- 日志尾部 ----'
+            tail -n 60 probe.log || true
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 失败时开 issue（同标题去重）
+        if: steps.probe.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TITLE='站点核验失败：预置站点协议特征不再成立'
+          DATE=$(date -u +%Y-%m-%d)
+          LOG=$(tail -n 40 probe.log)
+          BODY=$(printf '自动核验失败（%s）。日志尾部：\n\n%s\n\n处理方式见 docs/SITES_AND_VIDEO.md 的「站点核验」一节。' "$DATE" "$LOG")
+          # 不用 --search：标题是中文，搜索匹配不稳定；直接列出来按前缀筛。
+          # 也不用 jq（runner 上不一定有，本机就是 NO-JQ）——用 python3 解析，
+          # 这段逻辑在本地用样例 JSON 验过两种分支。
+          ISSUES=$(gh issue list --state open --limit 100 --json number,title)
+          EXISTING=$(printf '%s' "$ISSUES" | python3 -c "import json,sys; d=json.load(sys.stdin); h=[i['number'] for i in d if i.get('title','').startswith('站点核验失败')]; print(h[0] if h else '')")
+          if [ -n "$EXISTING" ] && [ "$EXISTING" != 'null' ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi
+
+      - name: 让 job 明确变红
+        if: steps.probe.outcome == 'failure'
+        run: |
+          echo '::error::站点核验失败：预置站点协议特征不再成立，详见 Job Summary 与（已开的）issue'
+          exit 1

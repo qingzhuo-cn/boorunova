@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/foundation/database/hive_setup.dart';
 import 'package:boorunova/foundation/database/json_store.dart';
@@ -152,7 +155,13 @@ class UserHistoryRepo {
         .toList();
   }
 
-  List<HistoryEntry> getAll() => _load();
+  /// 返回缓存内容的**不可变副本**。
+  ///
+  /// 此前直接返回内部缓存引用：任何调用方一句 `getAll().remove(...)` 或
+  /// `getAll().add(...)` 都会绕过写队列改动缓存，下次 `add/remove`
+  /// 事务里读到的就不是存储的真实内容。收藏侧早就用 `List.unmodifiable`
+  /// 防住了同样的模式，历史这边漏了。
+  List<HistoryEntry> getAll() => List.unmodifiable(_load());
 
   Future<void> add(PostSummary post) async {
     final written = await _store.update((items) {

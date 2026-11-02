@@ -1,3 +1,4 @@
+import 'package:boorunova/presentation/widgets/common/drawer_header_content.dart';
 import 'package:boorunova/presentation/widgets/common/side_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,17 +25,15 @@ void main() {
               height: 176,
               child: SideNavPanel(
                 groups: const [],
-                // 头部内容：与 home_page 里 _drawerHeader 同构（窄内容 + InkWell）
-                header: InkWell(
+                // 头部内容用**线上那一份**组件（不再是测试里手抄的同构 Row）：
+                // 热区被 Row 的默认 max 横铺正是这里出过的真问题，测试必须打
+                // 在真实实现上，抄一份就失去了守卫意义。
+                header: DrawerHeaderContent(
+                  leading: const Icon(Icons.image_search,
+                      size: 32, color: Colors.white),
+                  title: '站点名',
+                  trailingIcon: Icons.swap_horiz,
                   onTap: () => headerTaps++,
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.image_search, size: 32, color: Colors.white),
-                      SizedBox(width: 6),
-                      Text('站点名', style: TextStyle(color: Colors.white)),
-                    ],
-                  ),
                 ),
                 // 头图：整张可点，与 SiteArtwork 的热区口径一致
                 artwork: GestureDetector(
@@ -52,8 +51,12 @@ void main() {
 
     final rect = tester.getRect(find.byType(SideNavPanel));
 
-    // 1) 点右上方的图片区域（远离底部左侧的头部内容）→ 命中头图
-    await tester.tapAt(Offset(rect.right - 40, rect.top + 40));
+    // 1) 点头部内容**同一水平带**、但远离文字右侧的图片区域 → 必须命中头图。
+    //
+    // 纵向落在头部内容带内（不是上方那片纯图片）：这才是原来出事的几何——
+    // 头部内容的 Row 一旦用 mainAxisSize.max，它的 InkWell 会横铺整个头图
+    // 宽度，把这一整条都吃掉（用户点图片却切了站点）。
+    await tester.tapAt(Offset(rect.right - 40, rect.bottom - 46));
     await tester.pump();
     expect(artworkTaps, 1, reason: '点头图应当命中头图，而不是被头部热区吃掉');
     expect(headerTaps, 0, reason: '头图区域的点击不该触发头部回调（切换站点）');

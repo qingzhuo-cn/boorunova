@@ -1,7 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'dart:async';
 
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/data/repository/favorites/user_favorite_repo.dart';
+import 'package:boorunova/presentation/l10n/app_strings.dart';
 import 'package:boorunova/presentation/provider/app_settings.dart';
 import 'package:boorunova/presentation/theme/app_dimens.dart';
 import 'package:boorunova/presentation/widgets/sliver_masonry_grid.dart';
@@ -54,6 +58,14 @@ class Timeline extends StatelessWidget {
       itemBuilder: (context, index) {
         if (index < posts.length) {
           return _AnimatedTile(
+            // 身份跟内容走：Sliver 按 index 复用元素，黑名单增删导致
+            // filteredPosts 位移而列表长度不变时，同一 index 会换绑到另一个
+            // 帖子；配合 gaplessPlayback，用户会一直看到上一个帖子已解码的帧
+            // （点进去是 B，看到的是 A）。挂 key 后 index 换帖即重建元素。
+            key: ValueKey(postKeyOf(posts[index])),
+            // 与 key 同源的帖子身份：入场动画靠它跨 State 记住「已播过」，
+            // 修掉滚回重播（见 _AnimatedTileState）。
+            identityKey: postKeyOf(posts[index]),
             index: index,
             child: _PostTile(
               post: posts[index],
@@ -78,7 +90,16 @@ class Timeline extends StatelessWidget {
 }
 
 class _AnimatedTile extends ConsumerStatefulWidget {
-  const _AnimatedTile({required this.index, required this.child});
+  const _AnimatedTile({
+    super.key,
+    required this.identityKey,
+    required this.index,
+    required this.child,
+  });
+
+  /// 帖子身份（serverId/postId）。用于跨 State 记住「这个帖子已入场过」，
+  /// 滚出屏幕再滚回来时不再重播。
+  final String identityKey;
   final int index;
   final Widget child;
 
@@ -88,13 +109,29 @@ class _AnimatedTile extends ConsumerStatefulWidget {
 
 class _AnimatedTileState extends ConsumerState<_AnimatedTile>
     with SingleTickerProviderStateMixin {
+  /// 已播过入场动画的帖子身份（进程级）。
+  ///
+  /// 瀑布流的 Sliver 在滚出缓存区时会销毁元素，滚回来重建 State；只在
+  /// State 里记标志挡不住重播——用户每滚回一屏，瓦片就集体再淡入一次。
+  /// 用帖子身份跨 State 记忆，保证每个帖子只入场一次。超过上限整体清空，
+  /// 避免长会话里无界增长（清空后最坏情况是再播一轮）。
+  static final Set<String> _played = <String>{};
+  static const int _playedLimit = 2000;
+
   AnimationController? _controller;
   Animation<double>? _anim;
   Timer? _delayTimer;
 
+  void _markPlayed(String key) {
+    if (_played.length >= _playedLimit) _played.clear();
+    _played.add(key);
+  }
+
   @override
   void initState() {
     super.initState();
+    if (_played.contains(widget.identityKey)) return;
+    _markPlayed(widget.identityKey);
     // 「减少动画」开启时跳过入场动画，仅保留静态内容
     if (ref.read(settingsProvider).reduceAnimations) return;
     final controller = AnimationController(
@@ -116,6 +153,17 @@ class _AnimatedTileState extends ConsumerState<_AnimatedTile>
 
   @override
   Widget build(BuildContext context) {
+    // 运行中切换「减少动画」要立即生效：修复前只在 initState 读一次，
+    // 开关对已经建好的瓦片完全无效。
+    ref.listen(settingsProvider.select((s) => s.reduceAnimations), (prev, next) {
+      if (next == prev || !next) return;
+      // 打开「减少动画」：把正在播的淡入推到终态并重建一次，
+      // 避免瓦片停在半透明/带位移的中间帧。
+      _delayTimer?.cancel();
+      _controller?.value = 1.0;
+      if (mounted) setState(() {});
+    });
+
     final anim = _anim;
     if (anim == null) return widget.child;
     return FadeTransition(
@@ -182,8 +230,27 @@ class _PostTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isVideo = isVideoPost(post);
     final showMeta = isVideo || post.score != 0;
-    return GestureDetector(
+    // 坏数据兜底（覆盖所有引擎）：aspectRatio <= 0 / NaN / 无穷会让
+    // AspectRatio 直接抛断言，挂掉整页；各 parser 只挡住 height 不挡 width。
+    final rawAspect = post.aspectRatio;
+    final aspectRatio =
+        rawAspect > 0 && rawAspect.isFinite ? rawAspect : 1.0;
+    // 无障碍（OPT §5.2）：瓦片此前对读屏用户只是一张图——既没有「可以点开」
+    // 的按钮角色，也没有任何文本。这里补上标签与角色；批量选择模式下还要把
+    // 「选中/未选中」播报出来，否则勾选状态对读屏用户完全不可见。
+    return Semantics(
+      label: T.viewPostSemantics(post.id, isVideo: isVideo),
+      button: true,
+      selected: selectionMode ? isSelected : null,
+      // 读屏的「双击激活」必须落到同一个动作上：只给标签不给 onTap 的话，
+      // TalkBack 用户听得见「按钮」却点不动（手势在 GestureDetector 里，
+      // 而读屏走的是语义动作，不经过手势竞技场）。
       onTap: selectionMode ? onSelectionToggle : onTap,
+      child: GestureDetector(
+      onTap: selectionMode ? onSelectionToggle : onTap,
+      // 手势节点自己也会生成一个语义节点（无标签的「按钮」）→ 与上面的
+      // Semantics 重复播报同一个「打开帖子」动作。排除它的语义，只留一个。
+      excludeFromSemantics: true,
       onLongPress: enablePeekPreview && !selectionMode
           ? () => _showPeekPreview(context)
           : onLongPress,
@@ -194,7 +261,7 @@ class _PostTile extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(AppDimens.radiusS),
           child: AspectRatio(
-            aspectRatio: post.aspectRatio,
+            aspectRatio: aspectRatio,
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -204,6 +271,11 @@ class _PostTile extends StatelessWidget {
                   cache: true,
                   cacheWidth: decodeWidth,
                   gaplessPlayback: true,
+                  // 挂起连接（TCP 建好但服务端不回数据）不会自己判失败：
+                  // 没有 timeLimit 时 shimmer 会一直转下去。8 秒对齐侧栏
+                  // 头图的口径，再给一次有限重试。
+                  timeLimit: const Duration(seconds: 8),
+                  retries: 1,
                   loadStateChanged: (state) {
                     if (state.extendedImageLoadState == LoadState.loading) {
                       return const _ShimmerTile();
@@ -241,6 +313,21 @@ class _PostTile extends StatelessWidget {
                             if (isVideo)
                               const Icon(Icons.play_circle_fill,
                                   size: 14, color: Colors.white70),
+                            // 视频站给得出时长（`05:12`）：显示出来，用户不必点开
+                            // 才知道多长。此前这个值被塞在 uploader 里、无人消费。
+                            if (isVideo && (post.duration?.isNotEmpty ?? false))
+                              Padding(
+                                padding: const EdgeInsets.only(left: 3),
+                                child: Text(
+                                  post.duration!,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    height: 1.2,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
                             const Spacer(),
                             if (post.score != 0)
                               Row(
@@ -250,7 +337,7 @@ class _PostTile extends StatelessWidget {
                                       size: 10, color: Colors.white70),
                                   const SizedBox(width: 3),
                                   Text(
-                                    _formatScore(post.score),
+                                    T.compactScore(post.score),
                                     style: const TextStyle(
                                       fontSize: 10,
                                       height: 1.2,
@@ -269,38 +356,47 @@ class _PostTile extends StatelessWidget {
                   Positioned(
                     top: 0,
                     right: 0,
-                    child: GestureDetector(
-                      onTap: onFavorite,
-                      // 外层透明内边距扩大触控区至约 40dp，视觉气泡保持小巧
-                      child: Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          alignment: Alignment.center,
-                          decoration: const BoxDecoration(
-                            color: Colors.black26,
-                            shape: BoxShape.circle,
+                    // 收藏按钮此前是个**没有标签**的可点节点：读屏只会念「按钮」，
+                    // 用户不知道它是干什么的（OPT §5.2）。它必须独立成节点，
+                    // 不能并进「打开帖子」那一个——两个动作不能被合成一句话。
+                    child: Consumer(
+                      builder: (context, ref, _) {
+                        // select 精确订阅：只在该帖收藏状态翻转时重建此图标，
+                        // 其余 tile 的收藏变化不再触发整屏重建
+                        final isFav = ref.watch(
+                          userFavoritesRepoProvider.select(
+                            (repo) => repo.isFavorite(post.id,
+                                serverId: post.serverId),
                           ),
-                          child: Consumer(
-                            builder: (context, ref, _) {
-                              // select 精确订阅：只在该帖收藏状态翻转时重建此图标，
-                              // 其余 tile 的收藏变化不再触发整屏重建
-                              final isFav = ref.watch(
-                                userFavoritesRepoProvider.select(
-                                  (repo) => repo.isFavorite(post.id,
-                                      serverId: post.serverId),
+                        );
+                        return Semantics(
+                          label: T.favoriteToggleSemantics(isFav),
+                          button: true,
+                          onTap: onFavorite,
+                          child: GestureDetector(
+                            onTap: onFavorite,
+                            excludeFromSemantics: true,
+                            // 外层透明内边距扩大触控区至约 40dp，视觉气泡保持小巧
+                            child: Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: Container(
+                                width: 28,
+                                height: 28,
+                                alignment: Alignment.center,
+                                decoration: const BoxDecoration(
+                                  color: Colors.black26,
+                                  shape: BoxShape.circle,
                                 ),
-                              );
-                              return Icon(
-                                isFav ? Icons.favorite : Icons.favorite_border,
-                                size: 16,
-                                color: isFav ? Colors.red : Colors.white70,
-                              );
-                            },
+                                child: Icon(
+                                  isFav ? Icons.favorite : Icons.favorite_border,
+                                  size: 16,
+                                  color: isFav ? Colors.red : Colors.white70,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     ),
                   ),
                 if (selectionMode)
@@ -345,14 +441,8 @@ class _PostTile extends StatelessWidget {
           ),
         ),
       ),
+      ),
     );
-  }
-
-  /// 评分缩写：1234 → 1.2k，12345 → 1.2w（万）
-  static String _formatScore(int score) {
-    if (score >= 10000) return '${(score / 10000).toStringAsFixed(1)}w';
-    if (score >= 1000) return '${(score / 1000).toStringAsFixed(1)}k';
-    return '$score';
   }
 }
 

@@ -1,8 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/data/repository/favorites/user_favorite_repo.dart';
+import 'package:boorunova/data/repository/server/user_server_repo.dart';
 import 'package:boorunova/presentation/l10n/app_strings.dart';
+import 'package:boorunova/presentation/provider/app_settings.dart';
 import 'package:boorunova/presentation/provider/booru/page_state.dart';
 import 'package:boorunova/presentation/provider/tags_blocker_state.dart';
+import 'package:boorunova/presentation/widgets/common/block_tag_scope.dart';
 import 'package:boorunova/presentation/widgets/common/rating_badge.dart';
 import 'package:boorunova/presentation/widgets/media/resolved_video.dart';
 import 'package:extended_image/extended_image.dart';
@@ -14,8 +20,20 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 class PostDetailPage extends ConsumerStatefulWidget {
-  const PostDetailPage({super.key, required this.post});
+  const PostDetailPage({
+    super.key,
+    required this.post,
+    this.fromViewer = false,
+  });
+
   final PostSummary post;
+
+  /// 本页是否由全屏查看器打开。
+  ///
+  /// 决定「打开完整查看器」的行为：从查看器来的，**直接 pop 回那个查看器**
+  /// ——它手里就是原始画廊与当前位置，重新推一个新查看器反而会把画廊换成
+  /// 「当前站点首页那一批」。从别处（如首页头图）来的才需要重建画廊。
+  final bool fromViewer;
 
   @override
   ConsumerState<PostDetailPage> createState() => _PostDetailPageState();
@@ -59,6 +77,30 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
     }
   }
 
+  /// 长按单个标签 → 选作用域 → 屏蔽。
+  ///
+  /// 与「屏蔽选中标签」的区别：那个是批量、且一律全局；这个只屏蔽一个，
+  /// 并让用户当场决定是全局还是只在当前站点（各站标签体系不同）。
+  Future<void> _blockSingleTag(String tag) async {
+    final server = ref.read(userServerRepoProvider).getById(widget.post.serverId);
+    final scope = await askBlockTagScope(
+      context,
+      tag: tag,
+      siteName: server?.name,
+      // 没有 serverId 时「仅本站」无从谈起：不给这个选项，而不是让它退化成全局
+      canScopeToSite: widget.post.serverId.isNotEmpty,
+    );
+    if (scope == null || !mounted) return;
+    await ref.read(tagsBlockerStateProvider.notifier).pushAll(
+          serverId: blockScopeServerId(scope, widget.post.serverId),
+          tags: [tag],
+        );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(T.blockTagsDone)),
+    );
+  }
+
   void _copySelected() {
     final text = _selectedTags.join(' ');
     Clipboard.setData(ClipboardData(text: text));
@@ -71,10 +113,33 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
   }
 
   void _openPostViewer(BuildContext context) {
-    // 走 go_router 的 /post/:id 路由，保持返回栈一致（与首页等其他入口一致）。
+    // 从查看器进来的：**pop 回原查看器**。
+    //
+    // 这是用户点进去再点出来的期望行为，也顺带解决了「画廊只剩一张 / 位置归零」
+    // 的全部根因——原查看器里有完整画廊、当前下标、缩放与滚动状态，重建永远
+    // 只能近似它（跨来源时甚至只能退化成单帖）。
+    if (widget.fromViewer) {
+      Navigator.of(context).maybePop();
+      return;
+    }
+
+    // 其他入口（首页头图等）：走 go_router 的 /post/:id 路由，保持返回栈一致。
+    //
+    // 画廊来源：修复前无条件用单帖重开（posts: [widget.post]），画廊只剩这一张、
+    // 位置归零。这里从当前页面状态里还原同一站点的画廊，并用与首页相同的黑名单
+    // 过滤口径——否则会把用户已屏蔽的帖子重新带回查看器。
+    final pageState = ref.read(booruPageStateProvider);
+    final sameServer = widget.post.serverId.isNotEmpty &&
+        pageState.serverId == widget.post.serverId;
+    final gallery = sameServer
+        ? filterBlockedPosts(
+            pageState.posts, ref.read(tagsBlockerStateProvider))
+        : const <PostSummary>[];
+    final index = gallery.indexWhere((p) => p.id == widget.post.id);
+    final posts = index >= 0 ? gallery : <PostSummary>[widget.post];
     context.push('/post/${widget.post.id}', extra: {
-      'posts': [widget.post],
-      'initialIndex': 0,
+      'posts': posts,
+      'initialIndex': index >= 0 ? index : 0,
     });
   }
 
@@ -104,6 +169,8 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
           final chipColor = _chipColor(theme, category ?? 'general');
           return GestureDetector(
             onTap: () => _onTagTap(tag),
+            // 长按 = 快捷屏蔽（OPT §5.5）：此前要先跳到设置页、再手抄一遍标签名
+            onLongPress: () => _blockSingleTag(tag),
             child: Chip(
               label: Text(tag,
                   style: TextStyle(
@@ -157,7 +224,18 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
     // 视频判定与瀑布流共用 isVideoPost：此前此处只看 sample 优先的
     // imageUrl，而列表看 original，导致同一帖子列表标视频、详情按图渲染。
     final isVideo = isVideoPost(post);
-    final imageUrl = mediaUrlOf(post);
+    // 预览画质：站点偏好优先（§6.4）。mediaUrlOf 总是优先 sample，
+    // 所以「预览用原图」必须走 previewUrlOf，否则这个设置静默失效。
+    final previewPrefs =
+        ref.watch(userServerRepoProvider).preferencesOf(post.serverId);
+    final imageUrl = previewUrlOf(
+      post,
+      preferOriginal: previewQualityFor(
+            ref.watch(settingsProvider),
+            previewPrefs,
+          ) ==
+          'original',
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -177,6 +255,10 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
             onPressed: () async {
               final repo = ref.read(userFavoritesRepoProvider);
               await repo.toggle(post.toPost());
+              // await 之后组件可能已被销毁（用户返回上一页）。修复前
+              // invalidate 排在 mounted 检查之前，dispose 后使用 ref 会抛
+              // "Cannot use ref after the widget was disposed"。
+              if (!mounted) return;
               ref.invalidate(userFavoritesRepoProvider);
             },
           ),
@@ -256,7 +338,7 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                         style: theme.textTheme.titleSmall),
                     if (_selectedTags.isNotEmpty) ...[
                       const Spacer(),
-                      Text('${_selectedTags.length} 已选',
+                      Text('${_selectedTags.length} ${T.selected}',
                           style: theme.textTheme.bodySmall),
                     ],
                   ]),

@@ -50,7 +50,9 @@ void main() {
       expect(first.thumbnailUrl, isNot(contains('_preview')));
       expect(first.postUrl,
           'https://rule34video.com/video/1111111/sample-title-here/');
-      expect(first.uploader, '05:12');
+      // 时长走 duration（此前塞在 uploader 里，字段名与内容不符）
+      expect(first.duration, '05:12');
+      expect(first.uploader, isNull);
       expect(first.tags, containsAll(['sample', 'title', 'here']));
       expect(first.rating, 'e');
       // 列表页不提供播放地址，留空交给按需解析
@@ -188,7 +190,8 @@ var flashvars = {"video_url":"https://cdn.example.com/get_file/1/a/v.mp4?token=a
       expect(posts.single.tags, ['first_tag', 'second_tag', 'third_tag']);
     });
 
-    test('详情页原图只认 og:image（实测页面没有别的原图入口）', () {      const html = '''
+    test('详情页原图只认 og:image（实测页面没有别的原图入口）', () {
+      const html = '''
 <meta property="og:image" content="/1d/2a/9f8e7d6c5b4a39281706f5e4d3c2b1a0" />
 ''';
       expect(

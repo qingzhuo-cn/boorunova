@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 
 class BooruQuery {
@@ -73,6 +76,7 @@ class PostSummary {
     this.serverId = '',
     this.source,
     this.postUrl,
+    this.duration,
     this.tagGeneral = const [],
     this.tagArtist = const [],
     this.tagCharacter = const [],
@@ -94,6 +98,10 @@ class PostSummary {
   final String serverId;
   final String? source;
   final String? postUrl;
+
+  /// 视频时长（`mm:ss`），仅视频站提供；时间线瓦片用它替代空白的播放标记。
+  final String? duration;
+
   final List<String> tagGeneral;
   final List<String> tagArtist;
   final List<String> tagCharacter;
@@ -131,6 +139,7 @@ class PostSummary {
         score: score,
         source: source,
         postUrl: postUrl,
+        duration: duration,
         isVideo: isVideo,
       );
 }
@@ -158,6 +167,17 @@ String postKeyOf(PostSummary post) => '${post.serverId}/${post.id}';
 /// 单图下载、下载进度图标查询、批量下载此前各写一份三元表达式，
 /// 其中一处还靠注释「与这里保持一致」来同步——改一处忘另一处就静默
 /// 分叉，用户设了 sample 却被按原图下载。
+/// 查看器预览用的地址。
+///
+/// [preferOriginal] 为真且站点确实给了原图时用原图，否则走 [mediaUrlOf]
+/// 的优先级（sample 优先）。存在这个函数是因为 [mediaUrlOf] **总是**优先
+/// sample——只传 `preferSample: false` 是拿不到原图的，站点偏好里的「预览用
+/// 原图」会静默失效。
+String previewUrlOf(PostSummary post, {required bool preferOriginal}) {
+  if (preferOriginal && post.originalUrl.isNotEmpty) return post.originalUrl;
+  return mediaUrlOf(post);
+}
+
 String downloadUrlOf(PostSummary post, {bool preferSample = false}) {
   if (preferSample && post.sampleUrl.isNotEmpty) return post.sampleUrl;
   return mediaUrlOf(post);

@@ -48,13 +48,17 @@ void main() {
             'general': ['animated'],
             // 其余分类缺失
           },
-          'rating': 's',
+          // 四档世界的安全档是 g；s 已变成 sensitive（擦边）
+          'rating': 'g',
           'score': {'total': 0},
           'sources': <dynamic>[],
         },
       ];
 
-      final posts = E621Parser.parsePosts(serverId, json);
+      // 显式传站点 URL：解析器默认站点来自 site_presets（Play 版为空串），
+      // 这里要钉的是「给定 URL 时怎么拼」，不该依赖渠道默认值。
+      final posts =
+          E621Parser.parsePosts(serverId, json, baseUrl: 'https://e621.net');
       expect(posts, hasLength(2));
 
       final p1 = posts[0];
@@ -96,6 +100,26 @@ void main() {
       expect(p2.source, isNull);
     });
 
+    test('四档评级归一：g→s，s/sensitive→q，q→q，e→e', () {
+      const cases = {
+        'g': 's',
+        'general': 's',
+        's': 'q',
+        'sensitive': 'q',
+        'q': 'q',
+        'questionable': 'q',
+        'e': 'e',
+        'explicit': 'e',
+      };
+      for (final entry in cases.entries) {
+        final posts = E621Parser.parsePosts(serverId, [
+          {'id': 1, 'rating': entry.key},
+        ]);
+        expect(posts.single.rating, entry.value,
+            reason: 'raw=${entry.key} 应归一为 ${entry.value}');
+      }
+    });
+
     test('空输入返回空列表', () {
       expect(E621Parser.parsePosts(serverId, const []), isEmpty);
     });
@@ -112,7 +136,10 @@ void main() {
         },
       ];
 
-      final posts = E621Parser.parsePosts(serverId, json);
+      // 显式传站点 URL：解析器默认站点来自 site_presets（Play 版为空串），
+      // 这里要钉的是「给定 URL 时怎么拼」，不该依赖渠道默认值。
+      final posts =
+          E621Parser.parsePosts(serverId, json, baseUrl: 'https://e621.net');
       expect(posts, hasLength(2));
 
       final p = posts[0];

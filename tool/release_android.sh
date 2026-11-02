@@ -35,7 +35,10 @@ flutter analyze --fatal-infos
 flutter test
 
 # ---- 构建（--target-platform 是正确性的一部分，不能省） ----
-flutter build apk --release --target-platform android-arm64,android-x64
+# --split-debug-info 与 CI 保持一致（实测 19.6 → 18.5MB）：符号单独留存，
+# 用户导出的诊断日志要靠它才能还原成可读栈。
+flutter build apk --release --target-platform android-arm64,android-x64 \
+  --split-debug-info=build/symbols
 
 APK_DIR="build/app/outputs/flutter-apk"
 ARM64="$APK_DIR/app-arm64-v8a-release.apk"

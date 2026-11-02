@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -69,8 +72,11 @@ class BooruPageNotifier extends StateNotifier<BooruPageState> {
   String get currentQuery => _currentQuery;
   String? get currentRating => _currentRating;
 
-  Future<void> switchServer(BooruRepository repo) async {
+  /// 切换站点。[rating] 由调用方给出「本次浏览应当使用的评级」
+  /// （安全模式下就是安全档），传 null 表示沿用当前评级。
+  Future<void> switchServer(BooruRepository repo, {String? rating}) async {
     _repo = repo;
+    if (rating != null) _currentRating = rating;
     final seq = ++_requestSeq;
     // 清空旧站点内容并进入加载态，让切换立即有反馈；
     // serverId 变化会驱动 UI 滚动回顶
@@ -173,10 +179,14 @@ class BooruPageNotifier extends StateNotifier<BooruPageState> {
       for (final post in result.posts) {
         if (seen.add(postKeyOf(post))) appended.add(post);
       }
+      // 熔断：这一页有内容、但去重后没有一条是新的（引擎 offset/pid 退化
+      // 成「永远返回同一页」）时，继续翻页就是无限爬页。此前页码照常前进、
+      // hasMore 照常为真，坏掉的引擎会被一直打下去。
+      final stalled = result.posts.isNotEmpty && appended.isEmpty;
       state = state.copyWith(
         posts: [...state.posts, ...appended],
         isLoading: false,
-        hasMore: result.hasMore,
+        hasMore: result.hasMore && !stalled,
         currentPage: nextPage,
         pagingFailed: false,
       );

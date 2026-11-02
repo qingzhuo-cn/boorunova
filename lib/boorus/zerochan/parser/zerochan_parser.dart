@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
+import 'package:boorunova/boorus/engine/json_coerce.dart';
+import 'package:boorunova/boorus/engine/site_presets.dart';
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 
 class ZerochanParser {
@@ -6,24 +11,21 @@ class ZerochanParser {
   static List<BooruPost> parsePosts(
     String serverId,
     Map<String, dynamic> json, {
-    String baseUrl = 'https://www.zerochan.net',
+    String baseUrl = kZerochanBaseUrl,
   }) {
-    final items = json['items'];
-    if (items is! List) return [];
-
-    return items.whereType<Map<String, dynamic>>().map((post) {
-      final id = post['id']?.toString() ?? '';
-      final file = (post['file'] as String?) ?? '';
-      final thumbnail = (post['thumbnail'] as String?) ?? '';
-      final width = (post['width'] as int?) ?? 0;
-      final height = (post['height'] as int?) ?? 0;
-      final tagList = post['tags'];
-      final tags = tagList is List
-          ? tagList.whereType<String>().toList()
-          : <String>[];
-      final author = (post['author'] as String?) ?? '';
-      final source = (post['source'] as String?) ?? '';
-      const rating = 's';
+    return parseEach(asMapList(json['items']), (post) {
+      final id = asStr(post['id']);
+      final file = asStr(post['file']);
+      final thumbnail = asStr(post['thumbnail']);
+      final width = asInt(post['width']);
+      final height = asInt(post['height']);
+      final tags = asStrList(post['tags']);
+      final author = asStr(post['author']);
+      final source = asStr(post['source']);
+      // zerochan 是 ecchi 向站，站上并非全部安全：此前硬编码 's'（安全）
+      // 会把擦边内容标成绿徽章并通过头图的安全口径。无法判定按可疑处理，
+      // 与 shimmie2 的口径一致。
+      const rating = 'q';
 
       return BooruPost(
         id: id,
@@ -37,10 +39,10 @@ class ZerochanParser {
         height: height,
         rating: rating,
         score: 0,
-        source: source.isEmpty ? null : source,
+        source: asStrOrNull(source),
         postUrl: id.isEmpty ? null : '$baseUrl/$id',
-        uploader: author.isEmpty ? null : author,
+        uploader: asStrOrNull(author),
       );
-    }).toList();
+    });
   }
 }

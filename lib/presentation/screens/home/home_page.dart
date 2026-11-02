@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
+import 'package:boorunova/boorus/engine/booru_capabilities.dart';
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/boorus/engine/booru_type.dart';
 import 'package:boorunova/boorus/engine/registry.dart';
@@ -8,6 +12,7 @@ import 'package:boorunova/presentation/provider/app_settings.dart';
 import 'package:boorunova/presentation/provider/booru/page_state.dart';
 import 'package:boorunova/presentation/screens/home/home_content.dart';
 import 'package:boorunova/presentation/screens/server/booru_site_template.dart';
+import 'package:boorunova/presentation/widgets/common/drawer_header_content.dart';
 import 'package:boorunova/presentation/widgets/common/glass.dart';
 import 'package:boorunova/presentation/widgets/common/server_favicon.dart';
 import 'package:boorunova/presentation/widgets/common/side_nav.dart';
@@ -36,14 +41,18 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _onServersChanged(List<BooruServer> servers) {
+    // active 服务器是否刚被删除。删除和「当前有搜索词」同时发生时必须换站，
+    // 见下面 _selectServer 的调用条件。
+    var activeRemoved = false;
     if (_activeServer != null) {
       // active 服务器被编辑（URL/凭据变化）→ 失效缓存并重建 repo 刷新
       final updated =
           servers.where((s) => s.id == _activeServer!.id).firstOrNull;
       if (updated == null) {
-        // active 服务器被删除：清空缓存并切到第一个可用站点
+        // active 服务器被删除：清空缓存，标记为必须换站
         _repoCache.remove(_activeServer!.id);
         _activeServer = null;
+        activeRemoved = true;
       } else if (_configChanged(updated)) {
         _repoCache.remove(updated.id);
         _activeServer = null;
@@ -60,7 +69,14 @@ class _HomePageState extends ConsumerState<HomePage> {
       target =
           servers.where((s) => s.id == settings.defaultServerId).firstOrNull;
     }
-    if (ref.read(booruPageStateProvider.notifier).currentQuery.isEmpty) {
+    // 修复前这里只判断 currentQuery：带搜索词时删掉活动站点，就会跳过
+    // _selectServer，停在 _activeServer == null 的状态——页面继续显示
+    // 已删站点的旧帖子，滚动触发的 loadMore 也还在打那个已删站点的仓库。
+    // active 被删是一次必须处理的站点失效，与有没有搜索词无关，故无条件
+    // 切到 target ?? servers.first。（_selectServer 内部会走 switchServer，
+    // 有搜索词时重新拉取并保留旧内容，不会把页面清成空。）
+    if (activeRemoved ||
+        ref.read(booruPageStateProvider.notifier).currentQuery.isEmpty) {
       _selectServer(target ?? servers.first);
     }
   }
@@ -90,7 +106,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _selectServer(BooruServer server) {
-    if (server.id == _activeServer?.id) return;
+    // 同一个 id 但引擎类型被改过（服务器编辑页换引擎）时必须重来：
+    // 仓库、能力声明、请求路径都跟着类型走，早退会把旧引擎一直用下去。
+    if (server.id == _activeServer?.id && server.type == _activeServer?.type) {
+      return;
+    }
     setState(() => _activeServer = server);
     final registry = ref.read(booruRegistryProvider);
     try {
@@ -103,9 +123,19 @@ class _HomePageState extends ConsumerState<HomePage> {
             apiKey: server.apiKey,
           );
       _repoCache[server.id] = repo;
+      // 发布当前站点的能力声明，供搜索页评级选项与安全模式闸门使用
+      ref.read(activeCapabilitiesProvider.notifier).state =
+          registry.get(server.type)?.booru.capabilities ??
+              const BooruCapabilities();
       final notifier = ref.read(booruPageStateProvider.notifier);
-      // 有搜索词时也重新加载（保留旧内容），避免显示旧服务器帖子
-      notifier.switchServer(repo);
+      // 有搜索词时也重新加载（保留旧内容），避免显示旧服务器帖子。
+      // 评级按安全模式求值：Play 版首启（用户还没选过评级）默认只取安全档。
+      notifier.switchServer(repo,
+          rating: effectiveRatingForServer(
+            settings: ref.read(settingsProvider),
+            preferences: server.preferences,
+            chosen: notifier.currentRating,
+          ));
     } catch (e) {
       final template = BooruSiteTemplate.findByType(server.type);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -113,7 +143,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           content: Text(
             template != null
                 ? '${template.name} 引擎不可用，请更换服务器或修改引擎类型'
-                : '引擎不可用：${server.type.value}',
+                : '${T.engineNotAvailable}${server.type.value}',
           ),
         ),
       );
@@ -245,77 +275,17 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  /// 抽屉头图的内容排版：左右抽屉共用这一份。
-  ///
-  /// 头图的容器（随机图 + 压暗 + 下边缘渐隐）本来就由 SideNavPanel →
-  /// SideNavHeader 统一负责，右抽屉传 `right: true` 就已对齐；不一致的是
-  /// 压在头图上的内容——左抽屉是 32dp 品牌图标 + titleLarge 白字，
-  /// 右抽屉是 24dp 站标 + titleMedium 白字的一行紧凑排版，同一个头图里
-  /// 图标比例和字号都对不上，滑出右抽屉时像换了一套头部。
-  ///
-  /// 抽到这一处之后，两边只有「显示什么」不同，尺寸口径完全共享。
-  Widget _drawerHeader(
-    BuildContext context, {
-    required Widget leading,
-    required String title,
-    IconData? trailingIcon,
-    VoidCallback? onTap,
-  }) {
-    final textTheme = Theme.of(context).textTheme;
-    final content = Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        leading,
-        const SizedBox(height: 6),
-        Row(
-          // 必须 min：Row 默认 mainAxisSize.max 会横铺整个头图宽度，
-          // 于是右抽屉那层"切换站点"的 InkWell 把整张头图都盖住——
-          // 用户点图片时切了站点，还点不进帖子详情。
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            // 尾部图标（右抽屉的「可切换站点」提示）只在需要时占位：
-            // 左抽屉没有它，两边的图标与文字起点因此仍然一致。
-            if (trailingIcon != null) ...[
-              const SizedBox(width: 6),
-              Icon(trailingIcon, size: 20, color: Colors.white70),
-            ],
-          ],
-        ),
-      ],
-    );
-
-    if (onTap == null) return content;
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: content,
-    );
-  }
-
   /// 左抽屉头图：品牌图标 + 应用名，白字压在随机头图的深色压暗层上。
   Widget _brandHeader(BuildContext context) {
-    return _drawerHeader(
-      context,
-      leading: const Icon(Icons.image_search, size: 32, color: Colors.white),
+    return const DrawerHeaderContent(
+      leading: Icon(Icons.image_search, size: 32, color: Colors.white),
       title: 'BooruNova',
     );
   }
 
   /// 右抽屉头图内容：当前站点 + 点击切换，与搜索栏 favicon 共用同一套菜单。
   ///
-  /// 排版走 [_drawerHeader]，与左抽屉的品牌头同一个图标尺寸 / 字号 /
+  /// 排版走 [DrawerHeaderContent]，与左抽屉的品牌头同一个图标尺寸 / 字号 /
   /// 白字口径，只是把「品牌名」换成「站点名 + 切换提示」。
   ///
   /// 此前这里只有 Navigator.pop + 一行 TODO 注释，按下等于关抽屉；
@@ -331,8 +301,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         : _serverFavicon(server.baseUrl, server.type, size: 32);
 
     return Builder(
-      builder: (ctx) => _drawerHeader(
-        ctx,
+      builder: (ctx) => DrawerHeaderContent(
         leading: leading,
         title: server?.name ?? 'BooruNova',
         trailingIcon: Icons.swap_horiz,

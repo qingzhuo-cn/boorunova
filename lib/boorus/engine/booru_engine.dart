@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/booru.dart';
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:dio/dio.dart';

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12+ 深色模式系统 splash：深紫黑底 + 品牌前景图形 -->
+<!-- Android 12+ 深色模式系统 splash：近黑蓝紫底 + 四颗新星前景图形 -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">@drawable/launch_background</item>

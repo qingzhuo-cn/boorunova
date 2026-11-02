@@ -7,6 +7,7 @@
 *.yaml  text eol=lf
 *.svg   text eol=lf
 *.dart  text eol=lf
+# 许可证全文保持逐字节原样（AGPL-3.0 不允许修改正文）
 LICENSE text eol=lf
 
 # 二进制资源

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/base_booru_repository.dart';
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/boorus/gelbooru_v2/parser/gelbooru_v2_parser.dart';
@@ -7,6 +10,13 @@ class GelbooruV2Repository extends BaseBooruRepository {
     required super.dio,
     required super.serverId,
   });
+
+  /// gelbooru 系 DAPI 的单页上限（公开接口口径为 100）：请求更大的 limit
+  /// 会被静默截断，而 hasMore 若拿原始 limit 去比就会把满页误判成末页。
+  static const int kMaxPageSize = 100;
+
+  @override
+  int get maxPageSize => kMaxPageSize;
 
   @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
@@ -20,6 +30,8 @@ class GelbooruV2Repository extends BaseBooruRepository {
           _ => 'rating:${query.rating}',
         },
     ].join(' ');
+    // 请求与 hasMore 必须共用夹持后的同一个值（见 clampLimit 注释）。
+    final limit = clampLimit(query.limit);
 
     final response = await dio.get(
       '/index.php',
@@ -29,7 +41,7 @@ class GelbooruV2Repository extends BaseBooruRepository {
         'q': 'index',
         'tags': tags,
         'pid': query.page - 1,
-        'limit': query.limit,
+        'limit': limit,
         ...authQueryParams,
       },
     );
@@ -56,7 +68,7 @@ class GelbooruV2Repository extends BaseBooruRepository {
       posts: posts.map((p) => p.toSummary(serverId)).toList(),
       hasMore: (count != null && offset != null)
           ? offset + posts.length < count
-          : posts.length >= query.limit,
+          : posts.length >= limit,
     );
   }
 
@@ -71,6 +83,10 @@ class GelbooruV2Repository extends BaseBooruRepository {
         'name_pattern': '%$query%',
         'orderby': 'count',
         'limit': limit,
+        // 修复前的故障：tag 接口没带 authQueryParams，gelbooru / rule34
+        // 这类需要 api_key+user_id 的站点会静默 401，标签建议永远为空；
+        // 帖子搜索（searchPosts）此前已带，这里补齐保持一致。
+        ...authQueryParams,
       },
     );
 
@@ -90,6 +106,8 @@ class GelbooruV2Repository extends BaseBooruRepository {
         'q': 'index',
         'orderby': 'count',
         'limit': limit,
+        // 同 suggestTags：需 key 的站点此前建议静默 401。
+        ...authQueryParams,
       },
     );
     final xml = response.data;

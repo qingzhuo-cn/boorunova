@@ -1,6 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/base_booru_repository.dart';
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/boorus/gelbooru_v2/parser/gelbooru_v2_parser.dart';
+import 'package:flutter/foundation.dart';
 
 class SafebooruRepository extends BaseBooruRepository {
   SafebooruRepository({
@@ -8,9 +12,19 @@ class SafebooruRepository extends BaseBooruRepository {
     required super.serverId,
   });
 
+  /// safebooru.org 的 DAPI 与 gelbooru 同源，单页上限同为 100：请求更大的
+  /// limit 会被静默截断，而 hasMore 若拿原始 limit 去比就会把满页误判成
+  /// 末页。
+  static const int kMaxPageSize = 100;
+
+  @override
+  int get maxPageSize => kMaxPageSize;
+
   @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
     final tags = buildTagsQuery(query, BaseBooruRepository.ratingMapLong);
+    // 请求与 hasMore 必须共用夹持后的同一个值（见 clampLimit 注释）。
+    final limit = clampLimit(query.limit);
 
     final response = await dio.get(
       '/index.php',
@@ -20,7 +34,7 @@ class SafebooruRepository extends BaseBooruRepository {
         'q': 'index',
         'tags': tags,
         'pid': query.page - 1,
-        'limit': query.limit,
+        'limit': limit,
         ...authQueryParams,
       },
     );
@@ -45,7 +59,7 @@ class SafebooruRepository extends BaseBooruRepository {
       posts: posts.map((p) => p.toSummary(serverId)).toList(),
       hasMore: (count != null && offset != null)
           ? offset + posts.length < count
-          : posts.length >= query.limit,
+          : posts.length >= limit,
     );
   }
 
@@ -60,13 +74,12 @@ class SafebooruRepository extends BaseBooruRepository {
         'name_pattern': '%$query%',
         'orderby': 'count',
         'limit': limit,
+        // 与 searchPosts 一致：漏了凭据会静默 401
+        ...authQueryParams,
       },
     );
 
-    final xml = response.data;
-    if (xml is! String || !xml.contains('<tag')) return [];
-
-    return GelbooruV2Parser.parseSuggestions(xml);
+    return _parseTagResponse(response.data);
   }
 
   @override
@@ -79,11 +92,33 @@ class SafebooruRepository extends BaseBooruRepository {
         'q': 'index',
         'orderby': 'count',
         'limit': limit,
+        ...authQueryParams,
       },
     );
-    final xml = response.data;
-    if (xml is! String || !xml.contains('<tag')) return [];
-    return GelbooruV2Parser.parseSuggestions(xml);
+    return _parseTagResponse(response.data);
+  }
+
+  /// tag 建议/热门标签的响应形态未被验证过（详见 M2）：
+  ///
+  /// 修复前的故障：`if (xml is! String || !xml.contains('<tag')) return []`
+  /// 把任何非预期响应静默吞掉，用户只看到「没有建议」，查不到原因。
+  /// XML 正常走 GelbooruV2Parser.parseSuggestions；其余形态打 debugPrint
+  /// 说明收到了什么，端点本身不做猜测性改动。
+  List<String> _parseTagResponse(Object? data) {
+    if (data is String && RegExp(r'<tag[\s>]').hasMatch(data)) {
+      return GelbooruV2Parser.parseSuggestions(data);
+    }
+    debugPrint('[SafebooruRepository] tag 建议响应非预期形态：'
+        '${_describeResponse(data)}');
+    return [];
+  }
+
+  String _describeResponse(Object? data) {
+    if (data is String) {
+      final head = data.length > 120 ? data.substring(0, 120) : data;
+      return 'String(${data.length} 字符) 前 120 字：$head';
+    }
+    return '${data.runtimeType}';
   }
 
 }

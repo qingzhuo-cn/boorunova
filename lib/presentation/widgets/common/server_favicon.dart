@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/booru_type.dart';
 import 'package:boorunova/presentation/screens/server/booru_site_template.dart';
 import 'package:flutter/material.dart';
@@ -8,8 +11,9 @@ import 'package:flutter/material.dart';
 /// 和品牌图标兜底，服务器页只有一个 `Icons.public` —— 同一个站点在两个
 /// 页面显示不同的占位图标，看起来像加载失败。
 ///
-/// 失败集合是进程级静态：某个站点 favicon 404 之后本次运行不再重试，
-/// 避免每次 rebuild 都发一次注定失败的请求。
+/// 失败集合是进程级静态，但带 5 分钟 TTL：某次请求失败后短时间内不再
+/// 重试（避免每次 rebuild 都发一次注定失败的请求），但一次网络抖动不会
+/// 让图标在整个会话里永远退回引擎兜底。
 class ServerFavicon extends StatelessWidget {
   const ServerFavicon({
     super.key,
@@ -22,7 +26,20 @@ class ServerFavicon extends StatelessWidget {
   final BooruType type;
   final double size;
 
-  static final Set<String> _failed = <String>{};
+  /// url → 最近一次失败时间。修复前是 Set<String>：命中一次失败就永久
+  /// 拉黑，站点短暂抽风（或用户刚恢复网络）后本次运行再也不重试。
+  static final Map<String, DateTime> _failedAt = <String, DateTime>{};
+
+  static const Duration _failureTtl = Duration(minutes: 5);
+
+  /// 失败是否仍在 TTL 内。过期即顺手移除，让下一次渲染重新尝试。
+  static bool _hasFailed(String url) {
+    final at = _failedAt[url];
+    if (at == null) return false;
+    if (DateTime.now().difference(at) < _failureTtl) return true;
+    _failedAt.remove(url);
+    return false;
+  }
 
   static String faviconUrlOf(String baseUrl) {
     final clean =
@@ -33,7 +50,7 @@ class ServerFavicon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final url = faviconUrlOf(baseUrl);
-    if (url.isEmpty || _failed.contains(url)) {
+    if (url.isEmpty || _hasFailed(url)) {
       return EngineIcon(type: type, size: size);
     }
     return ClipRRect(
@@ -44,8 +61,8 @@ class ServerFavicon extends StatelessWidget {
         height: size,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) {
-          // 记入失败集合，后续渲染直接走兜底，不再重复请求
-          _failed.add(url);
+          // 记下失败时间；5 分钟内直接走兜底不再请求，之后允许重试
+          _failedAt[url] = DateTime.now();
           return EngineIcon(type: type, size: size);
         },
       ),

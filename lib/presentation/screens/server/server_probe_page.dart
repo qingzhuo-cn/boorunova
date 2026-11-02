@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/booru_type.dart';
 import 'package:boorunova/boorus/engine/registry.dart';
 import 'package:boorunova/presentation/l10n/app_strings.dart';
@@ -38,9 +41,14 @@ class _ServerScanPageState extends ConsumerState<ServerScanPage> {
   }
 
   Future<void> _startScan() async {
+    // 防并发开始：探测是长跑（单引擎最坏 15s 超时）。此前没有这道闸门，
+    // 而「取消」又会立刻把 _scanning 置回 false 让按钮重新可点，于是上一轮
+    // 还在后台跑、下一轮已经启动，两个扫描并发写 _logs/_result。
+    if (_scanning) return;
+
     final url = _urlController.text.trim();
     if (url.isEmpty) {
-      _addLog('输入站点地址后点击"探测"', LogType.info);
+      _addLog(T.probeInputHint, LogType.info);
       return;
     }
 
@@ -65,10 +73,15 @@ class _ServerScanPageState extends ConsumerState<ServerScanPage> {
       if (engine == null) continue;
 
       await Future.delayed(const Duration(milliseconds: 150));
+      if (!mounted) return;
       _addLog('> probing $type ...', LogType.info);
 
       try {
         final detected = await registry.probe(url, singleType: type);
+        // await 之后页面可能已经被关掉：再读 State / setState 会崩。
+        if (!mounted) return;
+        // 取消也约束「迟到的命中」：用户已经点了取消，就不该再弹结果。
+        if (_cancelRequested) break;
         if (detected != null) {
           _addLog('✓ $type matched! (${engine.booru.name})', LogType.success);
           setState(() {
@@ -81,21 +94,21 @@ class _ServerScanPageState extends ConsumerState<ServerScanPage> {
           _addLog('  $type: no response', LogType.fail);
         }
       } catch (e) {
+        if (!mounted) return;
         _addLog('  $type: error - $e', LogType.fail);
       }
     }
 
+    if (!mounted) return;
     if (_cancelRequested) {
       _addLog('> scan cancelled', LogType.info);
     } else {
       _addLog('> scan done: no match found', LogType.fail);
     }
-    if (mounted) {
-      setState(() {
-        _scanning = false;
-        _done = true;
-      });
-    }
+    setState(() {
+      _scanning = false;
+      _done = true;
+    });
   }
 
   void _addLog(String msg, LogType type) {
@@ -186,10 +199,18 @@ class _ServerScanPageState extends ConsumerState<ServerScanPage> {
                   const SizedBox(width: 12),
                   if (_scanning)
                     OutlinedButton(
-                      onPressed: () {
-                        _cancelRequested = true;
-                        setState(() => _scanning = false);
-                      },
+                      // 只置取消标志，不在这里把 _scanning 置回 false：
+                      // 置回后「探测」按钮马上又可选，而上一轮循环可能还卡在
+                      // 某个引擎 15s 的超时里 —— 两个扫描就并发跑起来了。
+                      // 循环在下一轮开头看到标志后退出，由末尾统一收尾并恢复按钮。
+                      // 按下后按钮置灰，直观表示「正在停」；循环退出时
+                      // 末尾的 setState 会把它换回可点的「探测」。
+                      onPressed: _cancelRequested
+                          ? null
+                          : () {
+                              _cancelRequested = true;
+                              _addLog('> cancelling ...', LogType.info);
+                            },
                       child: Text(T.scanCancel),
                     )
                   else if (_done && _result != null)

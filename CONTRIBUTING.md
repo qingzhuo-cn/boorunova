@@ -45,3 +45,13 @@
 ## 行为准则 / Code of Conduct
 
 保持友善与专业。请勿提交侵犯版权的图片资源或任何恶意代码。
+
+## 许可 / License
+
+BooruNova 以 **GNU AGPL-3.0**（`LICENSE`）发布。提交 Pull Request 即表示你同意
+以同一协议授权你的贡献——不需要签署单独的 CLA，但请注意 AGPL 是强 copyleft：
+任何分发出去的衍生版本都必须保持开源，并提供完整的对应源代码。
+
+Contributions are licensed under the **GNU AGPL-3.0** (see `LICENSE`). By opening
+a pull request you agree to license your contribution under the same terms.
+No separate CLA is required.

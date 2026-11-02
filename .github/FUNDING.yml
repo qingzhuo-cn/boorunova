@@ -1,0 +1,9 @@
+# 打赏/资助通道（GitHub 会据此在仓库页显示 Sponsor 按钮）。
+#
+# 只挂确定存在的通道：GitHub Sponsors 对任何开启了 Sponsor 的账号都可用，
+# 不会产生死链。其余通道（Ko-fi / 爱发电 / Patreon）请在开通后再取消注释。
+github: qingzhuo-cn
+
+# ko_fi: <你的 ko-fi 用户名>
+# patreon: <你的 patreon 用户名>
+# custom: ['https://afdian.net/a/<你的爱发电主页>']

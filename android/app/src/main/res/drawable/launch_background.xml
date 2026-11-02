@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 浅色启动画面：淡紫底 + 居中透明品牌图形（无圆角方框，避免底中底） -->
+<!-- 浅色启动画面：雾紫白底 + 居中透明品牌图形（四颗新星，无圆角方框，避免底中底）。
+     图形按 200dp 画布绘制，与 BrandSplash 的 200dp 画布一致，交接时不跳尺寸。 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/splash_background_light"/>
     <item
         android:gravity="center"
-        android:width="120dp"
-        android:height="120dp"
+        android:width="200dp"
+        android:height="200dp"
         android:drawable="@drawable/splash_logo"/>
 </layer-list>

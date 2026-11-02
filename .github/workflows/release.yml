@@ -9,6 +9,21 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      play_build:
+        # Play 版（零预置 BYO）用 --dart-define=boorunova.play=true 构建，
+        # 并且**必须**跑字节级禁串断言。GitHub 直装包本来就含站点模板，
+        # 那份包跑这条断言必然失败，所以默认 false。
+        description: '按 Play 版构建（零预置 + 字节级禁串断言）'
+        required: false
+        type: boolean
+        default: false
+      tag:
+        # 必填：此前直接把 github.ref_name 当 tag 用，而手动触发时它是**分支名**，
+        # 于是会创建一个叫 "main" 的 Release/tag 并标成 --latest。
+        description: '要发布/重跑的 tag（如 v1.8.7）'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -134,7 +149,27 @@ jobs:
       - name: 构建（arm64 专用包 + 双 ABI 通用包）
         # 不加 --target-platform 会把 armeabi-v7a 一起打进通用包（38MB → 56MB），
         # 与 README 声明的体积不符——这条参数是发布正确性的一部分。
-        run: flutter build apk --release --target-platform android-arm64,android-x64 --stacktrace
+        #
+        # Play 版额外带编译期开关：站点预置（模板/默认域名/探测捷径）整体置空。
+        run: |
+          set -euo pipefail
+          # --split-debug-info：把调试符号从 libapp.so 里挪出去（实测 19.6MB → 18.5MB，
+          # 符号 3.76MB 单独留存）。**必须同时把符号归档**：去掉之后崩溃栈会变成
+          # 无符号地址，而应用本身有「导出诊断日志」功能，没有符号等于白给用户。
+          ARGS=(--release --target-platform android-arm64,android-x64 --stacktrace
+                --split-debug-info=build/symbols)
+          if [ "${{ inputs.play_build }}" = "true" ]; then
+            echo '按 Play 版构建（零预置）'
+            ARGS+=(--dart-define=boorunova.play=true)
+          fi
+          flutter build apk "${ARGS[@]}"
+          if [ "${{ inputs.play_build }}" = "true" ]; then
+            # Play 只收 AAB。splits.abi 只影响 APK 输出，对 AAB 无害：
+            # AAB 里会包含全部 ABI，由 Play 按设备切分（这正是它该有的形态）。
+            flutter build appbundle --release \
+              --split-debug-info=build/symbols \
+              --dart-define=boorunova.play=true
+          fi
 
       - name: 校验装机清单（对发布包本身）
         # 权威断言：对象是打包进 APK 的清单，不是中间产物
@@ -161,6 +196,23 @@ jobs:
           [ "$(echo "$CERT" | tr 'A-F' 'a-f')" = "$EXPECTED" ] || {
             echo "签名证书与线上不一致，拒绝发布"; exit 1; }
 
+      - name: Play 版零预置字节级断言
+        # 权威口径：对**产物**断言，不是对源码。AOT 会把常量折叠后的死分支
+        # 连同字符串一起摇掉，所以 Play 包里不应出现任何站点域名。
+        # APK 与 AAB（上架用的那个）都要查。
+        if: ${{ inputs.play_build == 'true' }}
+        run: |
+          set -euo pipefail
+          bash tool/check_play_bytecode.sh build/app/outputs/flutter-apk/app-release.apk
+          bash tool/check_play_bytecode.sh build/app/outputs/bundle/release/app-release.aab
+
+      - name: 归档调试符号
+        # 符号与这次构建一一对应，丢了就没法把用户的崩溃栈还原成可读位置。
+        run: |
+          set -euo pipefail
+          ls -la build/symbols
+          tar -czf build/symbols.tar.gz -C build symbols
+
       - name: 生成校验和
         run: |
           cd build/app/outputs/flutter-apk
@@ -171,10 +223,28 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" \
-            --title "BooruNova ${GITHUB_REF_NAME}" \
-            --latest \
-            --generate-notes \
-            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk \
-            build/app/outputs/flutter-apk/app-release.apk \
+          set -euo pipefail
+          # tag 触发时 ref_name 就是 tag；手动触发时必须用输入值，
+          # 不能用 ref_name（那是分支名）。
+          TAG="${{ inputs.tag || github.ref_name }}"
+          case "$TAG" in
+            v*) ;;
+            *) echo "::error::tag 必须以 v 开头（收到：$TAG）"; exit 1 ;;
+          esac
+          ASSETS=(
+            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+            build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/flutter-apk/SHA256SUMS.txt
+            # 调试符号：用户导出的诊断日志要靠它才能还原成可读栈
+            build/symbols.tar.gz
+          )
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG 已存在：补传并覆盖资产（重跑场景）"
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
+          else
+            gh release create "$TAG" \
+              --title "BooruNova $TAG" \
+              --latest \
+              --generate-notes \
+              "${ASSETS[@]}"
+          fi

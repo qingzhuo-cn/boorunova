@@ -1,33 +1,44 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
+import 'package:boorunova/boorus/engine/json_coerce.dart';
+import 'package:boorunova/boorus/engine/site_presets.dart';
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 
 class MoebooruParser {
   MoebooruParser._();
 
-  static String _abs(String url) {
+  /// 补全媒体 URL。
+  ///
+  /// `http://` **原样保留**：此前一律强升 `https://`，http-only 的实例
+  /// （自建 moebooru 很常见）图片会全部挂掉。`//`（协议相对）才按站点
+  /// 自身的 scheme 补全。
+  static String _abs(String url, String siteUrl) {
     if (url.isEmpty) return url;
-    if (url.startsWith('//')) return 'https:$url';
-    if (url.startsWith('http://')) return 'https://${url.substring(7)}';
+    if (url.startsWith('//')) {
+      return siteUrl.startsWith('http://') ? 'http:$url' : 'https:$url';
+    }
     return url;
   }
 
   static List<BooruPost> parsePosts(
     String serverId,
     List<dynamic> json, {
-    String siteUrl = 'https://yande.re',
+    String siteUrl = kMoebooruBaseUrl,
   }) {
-    return json.whereType<Map<String, dynamic>>().map((post) {
-      final id = post['id']?.toString() ?? '';
-      var fileUrl = _abs((post['file_url'] as String?) ?? '');
-      var sampleUrl = _abs((post['sample_url'] as String?) ?? '');
-      final previewUrl = _abs((post['preview_url'] as String?) ?? '');
-      final jpegUrl = _abs((post['jpeg_url'] as String?) ?? '');
-      final tags = (post['tags'] as String?) ?? '';
-      final width = (post['width'] as int?) ?? 0;
-      final height = (post['height'] as int?) ?? 0;
-      final rating = (post['rating'] as String?) ?? 'q';
-      final score = (post['score'] as int?) ?? 0;
-      final source = (post['source'] as String?) ?? '';
-      final author = (post['author'] as String?) ?? '';
+    return parseEach(json, (post) {
+      final id = asStr(post['id']);
+      var fileUrl = _abs(asStr(post['file_url']), siteUrl);
+      var sampleUrl = _abs(asStr(post['sample_url']), siteUrl);
+      final previewUrl = _abs(asStr(post['preview_url']), siteUrl);
+      final jpegUrl = _abs(asStr(post['jpeg_url']), siteUrl);
+      final tags = asStr(post['tags']);
+      final width = asInt(post['width']);
+      final height = asInt(post['height']);
+      final rating = asStr(post['rating'], fallback: 'q');
+      final score = asInt(post['score']);
+      final source = asStr(post['source']);
+      final author = asStr(post['author']);
 
       // 部分帖子 file_url 缺失（如删除的帖子），用 jpeg/sample 兜底
       if (fileUrl.isEmpty) fileUrl = jpegUrl.isNotEmpty ? jpegUrl : sampleUrl;
@@ -39,22 +50,22 @@ class MoebooruParser {
         thumbnailUrl: previewUrl,
         sampleUrl: sampleUrl,
         originalUrl: fileUrl,
-        tags: tags.isEmpty ? [] : tags.split(' '),
+        tags: tags.isEmpty ? const [] : tags.split(' '),
         aspectRatio: height > 0 ? width / height : 1.0,
         width: width,
         height: height,
         rating: rating,
         score: score,
-        source: source.isEmpty ? null : source,
+        source: asStrOrNull(source),
         postUrl: id.isEmpty ? null : '$siteUrl/post/show/$id',
-        uploader: author.isEmpty ? null : author,
+        uploader: asStrOrNull(author),
       );
-    }).toList();
+    });
   }
 
   static List<String> parseSuggestions(List<dynamic> json) {
     return json.whereType<Map<String, dynamic>>().map((tag) {
-      return (tag['name'] as String?) ?? '';
+      return asStr(tag['name']);
     }).where((name) => name.isNotEmpty).toList();
   }
 }

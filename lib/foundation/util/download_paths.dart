@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
@@ -7,21 +10,95 @@ import 'package:path_provider/path_provider.dart';
 /// 回退目标必须是**持久**目录：此前回退到 `getTemporaryDirectory()`，那是系统
 /// 随时可以回收的缓存目录，「清理缓存」也会把它整个删掉——而下载记录里的
 /// localPath 还指着它，文件会凭空消失且用户什么都没做。
-Future<Directory> resolveDownloadDir(String downloadPath) async {
+Future<Directory> resolveDownloadDir(
+  String downloadPath, {
+  String subdir = '',
+}) async {
+  final safeSubdir = sanitizeSubdirName(subdir);
   if (downloadPath.isNotEmpty) {
-    final dir = Directory(downloadPath);
-    try {
-      // 配置期一次性目录检查，非热路径；需要确认/创建用户选定目录。
-      // ignore: avoid_slow_async_io
-      if (await dir.exists()) return dir;
-      await dir.create(recursive: true);
-      return dir;
-    } catch (_) {
-      // 路径无效（权限/只读等）时回退默认目录，避免下载直接失败。
-      // 注意回退到的是持久目录，不是缓存目录。
+    // 只判断「存在」是不够的：Android scoped storage 下
+    // `/storage/emulated/0/Download` 这类公共目录能被选中、也能 exists()，
+    // 但直接落文件会被拒绝。此前这里把它当可用目录返回，于是每次下载都
+    // 在写盘时才失败，且没有任何回退。改为真正写一次探针。
+    if (await isWritableDirectory(downloadPath)) {
+      return _withSubdir(Directory(downloadPath), safeSubdir);
     }
+    // 不可写（权限/只读/scoped storage）时回退默认目录，避免下载直接失败。
+    // 注意回退到的是持久目录，不是缓存目录。
   }
-  return defaultDownloadDir();
+  return _withSubdir(await defaultDownloadDir(), safeSubdir);
+}
+
+/// 在基目录下取（必要时创建）站点子目录。
+///
+/// 子目录建不出来（权限/只读/名字非法）时**退回基目录**：站点偏好是一个
+/// 可选的整理手段，不该因为它在写入前就把这一张图判失败。
+Future<Directory> _withSubdir(Directory base, String subdir) async {
+  if (subdir.isEmpty) return base;
+  final dir = Directory('${base.path}${Platform.pathSeparator}$subdir');
+  if (await isWritableDirectory(dir.path)) return dir;
+  return base;
+}
+
+/// 站点下载子目录的消毒规则（全项目唯一口径）。
+///
+/// 只允许**一层相对目录名**：绝对路径与 `..` 会让下载写到应用目录之外
+/// （scoped storage 上要么失败，要么是最不该有的越权）。非法输入一律退化成
+/// 空串（= 用基目录），而不是抛错或保留危险路径。
+String sanitizeSubdirName(String raw) {
+  var value = raw.trim().replaceAll('\\', '/');
+  while (value.startsWith('/')) {
+    value = value.substring(1);
+  }
+  while (value.endsWith('/')) {
+    value = value.substring(0, value.length - 1);
+  }
+  if (value.isEmpty) return '';
+  value = value.split('/').first;
+  if (value == '.' || value == '..') return '';
+  value = value.replaceAll(RegExp(r'[^A-Za-z0-9._\-\u4e00-\u9fa5]'), '_');
+  if (value.isEmpty || value.replaceAll('.', '').isEmpty) return '';
+  return value.length > 40 ? value.substring(0, 40) : value;
+}
+
+/// 目录可写探针：真写一个临时文件再删掉，成功才返回 true。
+///
+/// 存在的理由见 [resolveDownloadDir]：`exists()` 区分不了「能看见」与
+/// 「能写入」，而 scoped storage 下这两者经常不是一回事。选择下载目录时
+/// 同样用它，把不可写的目录挡在保存之前，而不是等下载时才失败。
+Future<bool> isWritableDirectory(String path) async {
+  if (path.isEmpty) return false;
+  // 探针结果按路径缓存在进程内：下载每一张图都会走一次
+  // [resolveDownloadDir]，每次都真建再删一个临时文件等于给批量下载多加
+  // 两次文件操作/张。目录中途变得不可写时，写盘失败仍会被上层报出来。
+  // 只缓存**成功**结果：失败可能是权限还没给或外置卡没挂上，用户处理后
+  // 再选一次应当立刻能用，不能因为一次否定就永久拒绝。
+  if (_writableCache[path] ?? false) return true;
+  final ok = await _probeWritableDirectory(path);
+  if (ok) _writableCache[path] = true;
+  return ok;
+}
+
+final Map<String, bool> _writableCache = <String, bool>{};
+
+Future<bool> _probeWritableDirectory(String path) async {
+  try {
+    final dir = Directory(path);
+    // 配置期一次性检查，非热路径。
+    // ignore: avoid_slow_async_io
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    final probe = File(
+      '${dir.path}${Platform.pathSeparator}'
+      '.boorunova_write_probe_${DateTime.now().microsecondsSinceEpoch}',
+    );
+    await probe.writeAsString('', flush: true);
+    await probe.delete();
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 /// 默认下载目录：app 专属外部目录（`/Android/data/<pkg>/files/…`）。
@@ -62,7 +139,11 @@ String extensionOf(String url) {
   if (segments.isEmpty) return '';
   final base = segments.last;
   final dot = base.lastIndexOf('.');
-  return dot > 0 ? base.substring(dot) : '';
+  // 必须要求点后还有字符：`https://h/..` 的最后一段是 `..`，lastIndexOf
+  // 落在末尾，旧写法会返回 `.`，随后拼出 `..` 这种目录名，写盘失败且
+  // 失败点离原因很远（守卫以为「有扩展名」就放行了）。返回空串让调用方
+  // 的扩展名守卫直接拒绝。
+  return dot > 0 && dot < base.length - 1 ? base.substring(dot) : '';
 }
 
 /// 视频扩展名集合。Gal 按媒体类型写入不同的相册集合，把 mp4 交给图片 API
@@ -108,6 +189,10 @@ String uniqueFileName(
   final safeExt = ext.replaceAll(RegExp(r'[^A-Za-z0-9.]'), '_');
   // 主体截断到 60 字符，避免超长路径；扩展名保留（.jpg 等本身不长）
   final trunk = safeStem.length > 60 ? safeStem.substring(0, 60) : safeStem;
+  // 主体消毒后若为空或只剩点（如 `https://h/..` 的最后一段），返回空串
+  // 明确拒绝：拼出 `.`/`..` 会被写盘当成目录路径。正常地址走不到这里——
+  // extensionOf 对纯点段已返回空串，调用方的扩展名守卫会先行拒绝。
+  if (trunk.isEmpty || trunk.replaceAll('.', '').isEmpty) return '';
   final safeNamespace = namespace == null || namespace.isEmpty
       ? ''
       : '${namespace.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_')}_';

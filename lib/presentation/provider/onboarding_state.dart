@@ -1,4 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/booru_type.dart';
+import 'package:boorunova/boorus/engine/site_presets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// 引导流程的跨重建状态。
@@ -23,10 +27,8 @@ class OnboardingState {
 class OnboardingNotifier extends Notifier<OnboardingState> {
   @override
   OnboardingState build() {
-    // Safebooru 为默认全年龄站点，预勾选
-    return OnboardingState(
-      selected: {BooruType.safebooru},
-    );
+    // 出厂预勾选来自 site_presets（Play 版为空集：应用装出来就是空白客户端）
+    return OnboardingState(selected: kPresetOnboardingSelection);
   }
 
   void setStep(int step) => state = state.copyWith(step: step);
@@ -42,11 +44,13 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
   }
 
   void preset(Set<BooruType> selected) {
-    state = state.copyWith(selected: selected);
+    // 必须拷贝：修复前直接持有调用方传入的 Set，调用方之后在原地增删
+    // 会绕过 copyWith 悄悄改掉 provider 状态，而且不触发通知（界面不刷新）。
+    state = state.copyWith(selected: Set.of(selected));
   }
 
   /// 引导结束时重置为初始态，避免下次（如重新引导）残留旧勾选。
-  void reset() => state = OnboardingState(selected: {BooruType.safebooru});
+  void reset() => state = OnboardingState(selected: kPresetOnboardingSelection);
 }
 
 final onboardingProvider =

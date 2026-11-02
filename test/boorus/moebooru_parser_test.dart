@@ -26,7 +26,7 @@ void main() {
         },
         {
           'id': 800002,
-          // http:// 应升级为 https://
+          // http:// 原样保留（http-only 实例强升 https 会让图片全挂）
           'file_url': 'http://files.yande.re/image/ef/gh/file2.png',
           'sample_url': 'https://files.yande.re/sample/ef/gh/sample2.png',
           'preview_url': 'https://files.yande.re/preview/ef/gh/preview2.png',
@@ -41,7 +41,9 @@ void main() {
         },
       ];
 
-      final posts = MoebooruParser.parsePosts(serverId, json);
+      // 显式传站点 URL（渠道默认值见 site_presets_test）
+      final posts = MoebooruParser.parsePosts(serverId, json,
+          siteUrl: 'https://yande.re');
       expect(posts, hasLength(2));
 
       final p1 = posts[0];
@@ -60,7 +62,8 @@ void main() {
       expect(p1.postUrl, 'https://yande.re/post/show/800001');
 
       final p2 = posts[1];
-      expect(p2.originalUrl, 'https://files.yande.re/image/ef/gh/file2.png');
+      expect(p2.originalUrl, 'http://files.yande.re/image/ef/gh/file2.png',
+          reason: '站点给 http 就照用：强升 https 会让 http-only 实例的图片全挂');
       expect(p2.source, isNull);
       expect(p2.uploader, isNull);
     });
@@ -81,7 +84,9 @@ void main() {
         },
       ];
 
-      final posts = MoebooruParser.parsePosts(serverId, json);
+      // 显式传站点 URL（渠道默认值见 site_presets_test）
+      final posts = MoebooruParser.parsePosts(serverId, json,
+          siteUrl: 'https://yande.re');
       expect(posts, hasLength(1));
       // file_url 与 sample_url 都兜底为 jpeg_url
       expect(posts[0].originalUrl, 'https://files.yande.re/jpeg/xx/jpeg.jpg');
@@ -99,7 +104,9 @@ void main() {
         42, // 非 Map 被过滤
       ];
 
-      final posts = MoebooruParser.parsePosts(serverId, json);
+      // 显式传站点 URL（渠道默认值见 site_presets_test）
+      final posts = MoebooruParser.parsePosts(serverId, json,
+          siteUrl: 'https://yande.re');
       expect(posts, hasLength(1));
 
       final p = posts[0];
@@ -116,7 +123,9 @@ void main() {
       final json = [
         {'width': 10, 'height': 10},
       ];
-      final posts = MoebooruParser.parsePosts(serverId, json);
+      // 显式传站点 URL（渠道默认值见 site_presets_test）
+      final posts = MoebooruParser.parsePosts(serverId, json,
+          siteUrl: 'https://yande.re');
       expect(posts[0].postUrl, isNull);
     });
   });

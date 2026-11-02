@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:flutter/material.dart';
 
 /// 设计令牌：全局统一的间距与圆角。

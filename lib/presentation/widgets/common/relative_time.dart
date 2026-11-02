@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/presentation/l10n/app_strings.dart';
 
 /// 相对时间格式化（「刚刚 / 5 分钟前 / 3 小时前 / 2 天前」）。

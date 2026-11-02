@@ -1,8 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'dart:io';
 
 import 'package:boorunova/data/repository/downloads/user_downloads_repo.dart';
 import 'package:boorunova/presentation/l10n/app_strings.dart';
 import 'package:boorunova/presentation/widgets/common/app_placeholders.dart';
+import 'package:boorunova/presentation/widgets/common/clear_confirm_dialog.dart';
 import 'package:boorunova/presentation/widgets/common/relative_time.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,25 +30,15 @@ class DownloadsPage extends ConsumerWidget {
               icon: const Icon(Icons.delete_sweep),
               tooltip: T.clearDownloadHistory,
               onPressed: () async {
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: Text(T.clearDownloadHistoryTitle),
-                    content: Text(T.clearDownloadHistoryContent),
-                    actions: [
-                      TextButton(
-                          onPressed: () => Navigator.of(ctx).pop(false),
-                          child: Text(T.cancel)),
-                      FilledButton(
-                          onPressed: () => Navigator.of(ctx).pop(true),
-                          child: Text(T.clear)),
-                    ],
-                  ),
+                final confirmation = await _confirmDelete(
+                  context,
+                  title: T.clearDownloadHistoryTitle,
+                  confirmLabel: T.clear,
                 );
-                if (confirmed ?? false) {
-                  await repo.clear();
-                  ref.invalidate(userDownloadsRepoProvider);
-                }
+                if (!confirmation.confirmed) return;
+                await repo.clear(
+                    deleteLocalFiles: confirmation.deleteLocalFiles);
+                ref.invalidate(userDownloadsRepoProvider);
               },
             ),
         ],
@@ -73,6 +67,10 @@ class DownloadsPage extends ConsumerWidget {
                       entry.imageUrl,
                       width: 48,
                       height: 48,
+                      // 48dp 的格子按原图全尺寸解码会白白吃掉内存（批量下载
+                      // 记录多时尤其明显）：按物理像素解码，同文件 _preview 已修过。
+                      cacheWidth:
+                          (48 * MediaQuery.devicePixelRatioOf(context)).round(),
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
                         width: 48,
@@ -120,6 +118,28 @@ class DownloadsPage extends ConsumerWidget {
             ),
     );
   }
+
+  /// 删除下载记录前的确认，顺带让用户决定是否清理本机文件。
+  ///
+  /// 删除确认：走全应用统一的 [confirmClearDialog]（带「同时删除本机文件」
+  /// 勾选项）。
+  ///
+  /// 修复前 remove/clear 只删记录：记录指向的本机文件（下载目录里那一份）
+  /// 永远留在磁盘上成为孤儿文件，而 UI 连一个清理入口都没给。这里删的只是
+  /// app 下载目录里的文件；Gal 写进系统相册的那份没有被、也没有能力在这里
+  /// 删除——文案里已写明「相册里的文件不会被删除」。
+  Future<ClearConfirmation> _confirmDelete(
+    BuildContext context, {
+    required String title,
+    required String confirmLabel,
+  }) =>
+      confirmClearDialog(
+        context,
+        title: title,
+        content: T.clearDownloadHistoryContent,
+        confirmLabel: confirmLabel,
+        withFileOption: true,
+      );
 
   /// 优先展示落盘后的真实文件名；文件已被系统清理时退回 URL 尾段。
   String _fileNameOf(DownloadEntry entry) {
@@ -197,8 +217,17 @@ class DownloadsPage extends ConsumerWidget {
 
   Future<void> _remove(BuildContext context, WidgetRef ref,
       UserDownloadsRepo repo, DownloadEntry entry) async {
+    // messenger 在任何 await 之前取好，后面不再碰 context。
     final messenger = ScaffoldMessenger.of(context);
-    await repo.remove(entry.postId, serverId: entry.serverId);
+    final confirmation = await _confirmDelete(
+      context,
+      title: T.deleteAction,
+      confirmLabel: T.deleteAction,
+    );
+    if (!confirmation.confirmed) return;
+    await repo.remove(entry.postId,
+        serverId: entry.serverId,
+        deleteLocalFile: confirmation.deleteLocalFiles);
     ref.invalidate(userDownloadsRepoProvider);
     messenger.showSnackBar(
       SnackBar(content: Text(T.removedFromDownloads)),

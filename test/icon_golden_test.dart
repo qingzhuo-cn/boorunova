@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// 三个变体：
 ///  - ic_launcher.png    带圆角底的完整图标（各密度 mipmap 从它缩放）
 ///  - ic_launcher_fg.png 自适应图标前景（透明底、无底框，图形占中央 61%）
-///  - splash_logo.png    启动画面居中 logo（完整图标，透明底）
+///  - splash_logo.png    启动画面居中 logo（透明底、图形铺满画布）
 void main() {
   testWidgets('generate brand icon assets', (tester) async {
     const canvas = 1024.0;
@@ -47,17 +47,13 @@ void main() {
       ),
     );
 
-    // 3) 启动 logo：透明底（无圆角方框）的图形，占地中央 55%，
-    //    背景由纯色 parent 提供，避免 splash 出现「底中底」双层圆角方。
+    // 3) 启动 logo：透明底的图形，铺满整块画布。
+    //    native splash 里按 200dp 绘制（见 launch_background.xml 的 layer 尺寸），
+    //    与 BrandSplash 的 200dp 画布一一对应，原生 splash 交给品牌过渡时
+    //    图形尺寸不会跳变。
     await snap(
       'splash_logo',
-      const Center(
-        child: SizedBox(
-          width: canvas * 0.55,
-          height: canvas * 0.55,
-          child: FittedBox(child: BrandIcon(withBackground: false)),
-        ),
-      ),
+      const FittedBox(child: BrandIcon(withBackground: false)),
     );
   });
 }

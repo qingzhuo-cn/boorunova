@@ -1,8 +1,13 @@
+import 'dart:io';
+
 import 'package:boorunova/boorus/engine/booru_repository.dart';
+import 'package:boorunova/foundation/database/hive_setup.dart';
+import 'package:boorunova/presentation/provider/app_settings.dart';
 import 'package:boorunova/presentation/provider/booru/page_state.dart';
 import 'package:boorunova/presentation/provider/booru/tag_suggestions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive_ce/hive.dart';
 
 /// 可计数的假仓库：记录 suggestTags 调用次数与 query。
 class _FakeRepo implements BooruRepository {
@@ -19,6 +24,7 @@ class _FakeRepo implements BooruRepository {
 
   int suggestCalls = 0;
   final List<String> suggestQueries = [];
+  final List<int> suggestLimits = [];
 
   @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async =>
@@ -28,6 +34,7 @@ class _FakeRepo implements BooruRepository {
   Future<List<String>> suggestTags(String query, {int limit = 10}) async {
     suggestCalls++;
     suggestQueries.add(query);
+    suggestLimits.add(limit);
     return ['${query}_tag1', '${query}_tag2'];
   }
 
@@ -40,6 +47,25 @@ class _FakeRepo implements BooruRepository {
 }
 
 void main() {
+  late Directory tempDir;
+
+  setUp(() async {
+    tempDir = Directory.systemTemp.createTempSync('boorunova_tag_suggest');
+    Hive.init(tempDir.path);
+    await Hive.openBox(HiveSetup.settingsBoxName);
+    // 模块级缓存跨用例保留，这里显式清掉，避免用例互相污染
+    clearTagSuggestionCache();
+  });
+
+  tearDown(() async {
+    try {
+      await Hive.close();
+    } catch (_) {}
+    try {
+      tempDir.deleteSync(recursive: true);
+    } catch (_) {}
+  });
+
   test('缓存生效：同一站点同一 query 只请求一次', () async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -105,5 +131,44 @@ void main() {
         .future);
 
     expect(r, isEmpty);
+  });
+  test('建议条数来自 AppSettings（不再是不持久化的内存 provider）', () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    final repo = _FakeRepo('danbooru');
+    await container.read(booruPageStateProvider.notifier).switchServer(repo);
+    await container.read(settingsProvider.notifier).setTagSuggestionLimit(7);
+
+    await container.read(tagSuggestionProvider(
+            (serverId: 'danbooru', query: 'limit_probe'))
+        .future);
+    expect(repo.suggestLimits.last, 7);
+    // 落盘：杀进程后不该回到 12
+    final raw = HiveSetup.settingsBox.get('app_settings') as Map;
+    expect(raw['tagSuggestionLimit'], 7);
+  });
+
+  test('缓存有上限：超过后淘汰最旧的一条', () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    final repo = _FakeRepo('danbooru');
+    await container.read(booruPageStateProvider.notifier).switchServer(repo);
+
+    for (var i = 0; i < kTagSuggestionCacheMax + 5; i++) {
+      await container.read(tagSuggestionProvider(
+              (serverId: 'danbooru', query: 'q$i'))
+          .future);
+    }
+    expect(tagSuggestionCacheSize, lessThanOrEqualTo(kTagSuggestionCacheMax),
+        reason: '无上限的缓存会一直堆积，长会话里内存只增不减');
+    expect(tagSuggestionCacheHas('danbooru', 12, 'q0'), isFalse,
+        reason: '最旧的条目应被 LRU 淘汰');
+    expect(
+        tagSuggestionCacheHas(
+            'danbooru', 12, 'q${kTagSuggestionCacheMax + 4}'),
+        isTrue,
+        reason: '最新条目必须在缓存里');
   });
 }

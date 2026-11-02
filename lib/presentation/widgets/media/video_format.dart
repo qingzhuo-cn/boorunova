@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 /// 播放时间显示：`mm:ss`，超过一小时给 `h:mm:ss`。
 ///
 /// 单独抽出来是为了可测：播放器控制层依赖真实解码器，不便在单测里跑，

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:boorunova/foundation/util/json_safe.dart';
@@ -64,7 +68,12 @@ class JsonListStore {
       // v1 裸数组：老数据，读到即视为合法，下次写入升级为 v2。
       list = decoded;
     } else if (decoded is Map) {
-      final version = (decoded['_v'] as num?)?.toInt() ?? 1;
+      // `_v` 可能是数字、数字字符串，也可能缺失/类型漂移。硬转型
+      // `as num?` 遇到 `{'_v': '2'}` 这类数据会抛 TypeError，而本文件的
+      // 承诺是「读取永不抛」——一次异常就把整份数据判成读不出来。
+      final v = decoded['_v'];
+      final version =
+          v is num ? v.toInt() : (v is String ? int.tryParse(v) ?? 1 : 1);
       if (version > schemaVersion) {
         // 比当前代码更新的格式（例如用户装回了旧版本）：既不能解析也不能
         // 覆盖，否则等于用旧结构把新数据写坏。隔离留证并停止写入。
@@ -131,13 +140,26 @@ class JsonListStore {
   /// 把无法解析的原始值改名放到 `<key>__corrupt`，并标记本进程不再写入。
   void _quarantine(String raw) {
     _corruptedKeys.add(_key);
-    // 用同步写：这是异常路径，必须在后续任何写入之前落盘。
+    // put/delete 必须**同步一起发起**：read() 是同步 API，调用方（含单测）
+    // 依赖「read() 返回时原始值已改名到 __corrupt、原键已清空」。
+    // 但「同步发起」不等于「不处理结果」——修复前这两个 Future 没人接收，
+    // 写盘失败（Android 上并不罕见）就是一条未处理异步异常，日志里只剩红字。
+    // 这里把两个 Future 投进已有的写队列 await，并单独接住异常记日志；
+    // 队列自身有 catchError 兜底，不会因为这次失败而卡死。
+    Future<void> backup;
     try {
-      _box.put(backupKey, raw);
-      _box.delete(_key);
-    } catch (_) {
-      // 备份失败也不能让 read() 抛——上层要能继续跑起来
+      backup = Future.wait<void>([
+        _box.put(backupKey, raw),
+        _box.delete(_key),
+      ]).then<void>((_) {});
+    } catch (e) {
+      // box 已关闭等同步异常：备份失败也不能让 read() 抛，上层要能继续跑起来。
+      debugPrint('JsonListStore: 隔离损坏值失败 key=$_key: $e');
+      return;
     }
+    unawaited(_enqueue(() => backup).catchError((e) {
+      debugPrint('JsonListStore: 隔离损坏值失败 key=$_key: $e');
+    }));
   }
 
   /// 清空（用于测试与「清除数据」入口）。

@@ -94,13 +94,13 @@ Everything is native Flutter, everything is on-device, and nothing is gated behi
 ### Personalization
 - 🎨 **Themes** — light / dark / midnight with custom accent colors
 - 👆 **Configurable gestures** — swipe / tap / long-press actions
-- 🌍 **Bilingual UI** — full English and Chinese, switchable in settings
+- 🌍 **Bilingual UI** — full English and Chinese, switchable in settings or follow the system language
 - 🚫 **Tag blacklist** — hide what you don't want to see
 - ♿ **Reduce animations** — instant page transitions when motion bothers you
 - 🌐 **Custom Hosts mapping** — reach sites from restricted networks, without breaking HTTPS
 
 ### Data Management
-- 🗄️ **Full backup & restore** — servers, favorites, history, blacklist, settings
+- 🗄️ **Full backup & restore** — servers, favorites, browsing/search history, downloads, blacklist, hosts and settings (8 sections). Export goes through the system share sheet (no ADB), and import reports per-section results instead of a single "failed".
 - 🧹 **Cache management** — reclaim storage in one tap
 - 🙋 **First-run guide** — a short walkthrough for new installs
 
@@ -194,13 +194,13 @@ Tap the sort button (top-right of the Servers page) to enter drag-reorder mode, 
 
 ### Searching
 
-Type a tag and pick from live suggestions, or combine with sort/rating filters from the toolbar (`order:score`, `rating:s`, …) — they're merged into the query for you. After a search, tap the search bar again to edit the tags in place instead of starting over.
+Type a tag and pick from live suggestions, or combine with sort/rating filters from the toolbar (`order:score`, `rating:q`, …) — they're merged into the query for you. After a search, tap the search bar again to edit the tags in place instead of starting over.
 
 ## How It Works
 
 ```
 ┌─────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│  UI (Riverpod) │──▶│  BooruRegistry    │──▶│  Engine (8 impl) │
+│  UI (Riverpod) │──▶│  BooruRegistry    │──▶│ Engine (10 impl) │
 │  screens/widgets │   │  createRepository │   │  per-site repo   │
 └─────────────┘    └──────────────────┘    └────────┬────────┘
                                                      │
@@ -233,10 +233,16 @@ silently drop query strings and break TLS on every mapped site.
 | Run tests | `flutter test` |
 | Add an engine | subclass `BaseBooruRepository`, register in `BooruRegistry` |
 
-The test suite is 85 cases across five layers: per-engine parsers against
-real-shaped and malformed responses (`test/boorus/`), the paging state machine,
-concurrent download writes, cross-server id isolation, and the hosts connection
-mapping — including a real TLS handshake against a local self-signed server.
+The test suite spans eight layers: per-engine parsers against real-shaped and
+malformed responses (`test/boorus/`), the paging state machine (dedupe, races,
+clamp-and-stop), download paths (cancel, retry, stall watchdog, per-site
+subfolders), cross-server id isolation, the hosts connection mapping — including
+a real TLS handshake against a local self-signed server — plus stored-data
+migration, credential-store migration, and capability/preference declarations
+that are checked against what the engines actually send on the wire.
+
+(No hard-coded case count here on purpose: it drifts every batch. `flutter test`
+prints the current number, and CI runs the suite on every push.)
 
 ## License
 
@@ -248,3 +254,7 @@ Foundation, either version 3 of the License, or (at your option) any later
 version. It is distributed in the hope that it will be useful, but **without any
 warranty**; without even the implied warranty of merchantability or fitness for
 a particular purpose. See the [LICENSE](LICENSE) file for details.
+
+In practice: distributed (or network-served) derivatives must stay open under the
+same license, with the full corresponding source available. Third-party
+dependencies keep their own licenses (mostly MIT / Apache-2.0 / BSD).

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/data/repository/tags_blocker/entity/booru_tag.dart';
 import 'package:boorunova/foundation/database/hive_setup.dart';
 import 'package:boorunova/foundation/database/json_store.dart';
@@ -49,12 +52,17 @@ class BooruTagsBlockerRepo {
     if (incoming.isEmpty) return Future<void>.value();
 
     return _store.update((items) {
+      // 去重键必须含 serverId：只按名字去重的话，「已经全局屏蔽 cat，再想只在
+      // A 站屏蔽 cat」会被静默吞掉——用户以为加上了，实际什么都没发生。
       final existing = <String>{
         for (final item in items)
           if (item['tag'] is Map)
-            '${(item['tag'] as Map)['name'] ?? ''}'.trim()
+            _dedupeKey(
+              '${(item['tag'] as Map)['serverId'] ?? ''}',
+              '${(item['tag'] as Map)['name'] ?? ''}',
+            )
           else
-            '${item['name'] ?? ''}'.trim(),
+            _dedupeKey('', '${item['name'] ?? ''}'),
       };
       var nextKey = items.fold<int>(0, (max, item) {
         final k = (item['_key'] as num?)?.toInt() ?? 0;
@@ -62,8 +70,9 @@ class BooruTagsBlockerRepo {
       });
       final next = [..._upgradeLegacy(items)];
       for (final name in incoming) {
-        if (existing.contains(name)) continue;
-        existing.add(name);
+        final key = _dedupeKey(serverId, name);
+        if (existing.contains(key)) continue;
+        existing.add(key);
         nextKey += 1;
         next.add({
           '_key': nextKey,
@@ -73,6 +82,13 @@ class BooruTagsBlockerRepo {
       return next;
     });
   }
+
+  /// 去重键 = 作用域 + 标签名。
+  ///
+  /// 用 `\u0000` 分隔：标签名里不会有它，避免「serverId 尾部 + 名字」拼出
+  /// 与另一条记录相同的字符串（例如 ('a','bc') 与 ('ab','c')）。
+  static String _dedupeKey(String serverId, String name) =>
+      '${serverId.trim()}\u0000${name.trim()}';
 
   /// 把老格式（裸标签，键=下标）升级成带 `_key` 的新格式，避免升级后
   /// 「一部分记录有稳定键、一部分还按下标」这种半吊子状态。

@@ -22,7 +22,8 @@ void main() {
           'tag_string_character': 'hatsune_miku',
           'tag_string_copyright': 'vocaloid',
           'tag_string_meta': 'highres',
-          'rating': 's',
+          // 四档世界的安全档是 g；s 已变成 sensitive（擦边）
+          'rating': 'g',
           'score': 42,
           'source': 'https://example.com/src1',
           'uploader_name': 'uploader1',
@@ -80,6 +81,27 @@ void main() {
       // 空 source/uploader 转为 null
       expect(p2.source, isNull);
       expect(p2.uploader, isNull);
+    });
+
+    test('四档评级归一：g→s，s/sensitive→q，q→q，e→e', () {
+      const cases = {
+        'g': 's',
+        'general': 's',
+        's': 'q', // 2024 起 s=sensitive，不能再当安全
+        'sensitive': 'q',
+        'q': 'q',
+        'questionable': 'q',
+        'e': 'e',
+        'explicit': 'e',
+        'what_is_this': 'q', // 未知值按可疑，不误伤安全口径
+      };
+      for (final entry in cases.entries) {
+        final posts = DanbooruParser.parsePosts(serverId, baseUrl, [
+          {'id': 1, 'rating': entry.key},
+        ]);
+        expect(posts.single.rating, entry.value,
+            reason: 'raw=${entry.key} 应归一为 ${entry.value}');
+      }
     });
 
     test('空输入返回空列表', () {

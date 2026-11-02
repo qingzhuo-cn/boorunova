@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12+ 系统 splash：品牌紫底 + 新图标前景（图标默认取启动器图标） -->
+<!-- Android 12+ 系统 splash：雾紫白底 + 四颗新星前景（图标默认取启动器图标） -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">@drawable/launch_background</item>

@@ -71,6 +71,13 @@ android {
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+
+        // 只保留应用真正提供的语言资源。
+        //
+        // 不加这一行，AGP 会把 androidx / 各插件里带的上百种 locale 资源
+        // 全打进 APK（res/values-xx 与 strings 的多语言变体），体积白白
+        // 多出几 MB，而应用只支持中英两种界面语言。
+        resourceConfigurations += ['en', 'zh']
     }
 
     // ABI 策略：产出 arm64 专用包与 universal 通用包。

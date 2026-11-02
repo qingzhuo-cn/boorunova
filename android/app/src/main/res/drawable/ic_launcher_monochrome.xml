@@ -1,24 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 13+ 主题图标（单色）：照片卡 + 双山 + 太阳剪影，内容居中于 66dp 安全区 -->
+<!-- Android 13+ 主题图标（单色）：四颗新星 + 不闭合的环形拖尾。
+     几何与 brand_icon.dart 同源：轨道半径 17.66dp，星尖半径 5.27 / 4.55 / 4.94 / 4.09dp，
+     内容居中于 72dp 安全区（与前景 PNG 的 61% 缩放一致）。 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 圆角照片卡 -->
+    <!-- 四条拖尾：开口留在 122° → 174° 之间，就是那个「不完整的圆」 -->
+    <path
+        android:strokeColor="#8CFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeWidth="2"
+        android:pathData="M40.71,42.37A17.66,17.66 0 0 1 62.29,38.41"/>
+    <path
+        android:strokeColor="#8CFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeWidth="2"
+        android:pathData="M64.75,39.99A17.66,17.66 0 0 1 69.3,62.83"/>
+    <path
+        android:strokeColor="#8CFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeWidth="2"
+        android:pathData="M67.4,65.51A17.66,17.66 0 0 1 44.64,69"/>
+    <path
+        android:strokeColor="#8CFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeWidth="2"
+        android:pathData="M36.44,55.88A17.66,17.66 0 0 1 39.36,44.13"/>
+
+    <!-- 四颗四角新星 -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M32,32L76,32A6,6 0 0 1 82,38L82,70A6,6 0 0 1 76,76L32,76A6,6 0 0 1 26,70L26,38A6,6 0 0 1 32,32Z"/>
-    <!-- 太阳 -->
-    <path
-        android:fillColor="#B3FFFFFF"
-        android:pathData="M66,39A5,5 0 1 1 65.99,39A5,5 0 1 1 66,39Z"/>
-    <!-- 远山 -->
-    <path
-        android:fillColor="#80FFFFFF"
-        android:pathData="M26,76L40,52L54,76Z"/>
-    <!-- 近山 -->
+        android:pathData="M62.29,33.14Q63.66,37.04 67.56,38.41Q63.66,39.78 62.29,43.68Q60.92,39.78 57.02,38.41Q60.92,37.04 62.29,33.14Z"/>
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M46,76L60,46L82,76Z"/>
+        android:pathData="M69.3,58.28Q70.48,61.65 73.85,62.83Q70.48,64.01 69.3,67.38Q68.12,64.01 64.75,62.83Q68.12,61.65 69.3,58.28Z"/>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M44.64,64.06Q45.92,67.72 49.58,69Q45.92,70.28 44.64,73.94Q43.36,70.28 39.7,69Q43.36,67.72 44.64,64.06Z"/>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M39.36,40.04Q40.42,43.07 43.45,44.13Q40.42,45.19 39.36,48.22Q38.3,45.19 35.27,44.13Q38.3,43.07 39.36,40.04Z"/>
 </vector>

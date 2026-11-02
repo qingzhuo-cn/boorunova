@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 启动画面背景：浅色（淡紫白）/ 深色（深紫黑），与 App 明暗主题衔接 -->
-    <color name="splash_background_light">#F6EBF9</color>
-    <color name="splash_background_dark">#141019</color>
+    <!-- 启动画面背景：浅色（雾紫白）/ 深色（近黑蓝紫），与 App 明暗主题衔接。
+         这两个值同时被 BrandSplash（Flutter 侧启动过渡）用作纯色底，
+         改这里就要同步改 brand_splash.dart 里的常量，否则交接会闪一下。 -->
+    <color name="splash_background_light">#F1EFFE</color>
+    <color name="splash_background_dark">#17141F</color>
 </resources>

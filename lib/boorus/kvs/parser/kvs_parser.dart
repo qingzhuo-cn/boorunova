@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 
 /// KVS（Kernel Video Sharing）站点的解析。
@@ -66,7 +69,7 @@ class KvsParser {
         id: id,
         serverId: serverId,
         thumbnailUrl: _absolute(thumb, baseUrl),
-        // 播放地址要打开详情页才知道：留空，由 resolvePlaybackUrl 按需解析。
+        // 播放地址要打开详情页才知道：留空，由 resolveMediaUrl 按需解析。
         sampleUrl: '',
         originalUrl: '',
         // 标签有两个来源：URL slug 与链接 title。视频站不提供标签字段，
@@ -83,7 +86,8 @@ class KvsParser {
         rating: 'e',
         score: 0,
         postUrl: _absolute(href, baseUrl),
-        uploader: duration,
+        // 时长写进它自己的字段（此前塞在 uploader 里，字段名与内容不符）
+        duration: duration,
         // 视频帖必须**显式**标记：列表页里没有任何 mp4/HLS 地址
         // （播放地址要开详情页才知道），只靠 URL 判定会被当成图片帖，
         // 于是点开只渲染一张缩略图——这正是用户实测到的"只显示图片"。

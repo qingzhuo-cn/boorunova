@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/danbooru/parser/danbooru_parser.dart';
 import 'package:boorunova/boorus/engine/base_booru_repository.dart';
 import 'package:boorunova/boorus/engine/booru_repository.dart';
@@ -8,26 +11,28 @@ class DanbooruRepository extends BaseBooruRepository {
     required super.serverId,
   });
 
+  /// danbooru 的单页上限（官方 API 允许 1–200）。
+  ///
+  /// 不夹持的危害不只是「请求被拒」：站点会**静默截断**到上限，而 hasMore
+  /// 若拿原始 limit 去比（`100 >= 200` 为假），明明还有下一页却判成末页。
+  static const int kMaxPageSize = 200;
+
+  @override
+  int get maxPageSize => kMaxPageSize;
+
   @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
-    // danbooru 的评级标签用短形式 rating:s/q/e
-    final tags = <String>[
-      if (query.tags.isNotEmpty) query.tags,
-      if (query.rating != null)
-        switch (query.rating!) {
-          's' => 'rating:s',
-          'q' => 'rating:q',
-          'e' => 'rating:e',
-          _ => 'rating:${query.rating}',
-        },
-    ].join(' ');
+    // danbooru 2024 起是四档 g/s/q/e；UI 的「安全」对应 g（s 已是 sensitive）
+    final tags = buildTagsQuery(query, ratingMapFourTier);
+    // 请求与 hasMore 必须共用夹持后的同一个值
+    final limit = clampLimit(query.limit);
 
     final response = await dio.get(
       '/posts.json',
       queryParameters: {
         'tags': tags,
         'page': query.page,
-        'limit': query.limit,
+        'limit': limit,
       },
     );
 
@@ -38,7 +43,7 @@ class DanbooruRepository extends BaseBooruRepository {
 
     final baseUrl = dio.options.baseUrl;
     final posts = DanbooruParser.parsePosts(serverId, baseUrl, data);
-    final hasMore = posts.length >= query.limit;
+    final hasMore = posts.length >= limit;
 
     return BooruPageResult(
         posts: posts.map((p) => p.toSummary(serverId)).toList(), hasMore: hasMore);

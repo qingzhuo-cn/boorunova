@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:boorunova/foundation/database/hive_setup.dart';
 import 'package:boorunova/foundation/database/json_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
@@ -13,7 +14,7 @@ void main() {
     JsonListStore.resetForTest();
     tempDir = Directory.systemTemp.createTempSync('boorunova_json_store');
     Hive.init(tempDir.path);
-    box = await Hive.openBox('settings');
+    box = await Hive.openBox(HiveSetup.settingsBoxName);
   });
 
   tearDown(() async {

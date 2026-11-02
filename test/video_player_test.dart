@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:boorunova/presentation/widgets/media/video_viewer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:video_player/video_player.dart';
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
 
 /// 视频播放器控制层的交互测试。
@@ -194,5 +195,113 @@ void main() {
   testWidgets('autoPlay=true 时打开即播放', (tester) async {
     await pumpPlayer(tester, autoPlay: true);
     expect(fake.calls, contains('play'));
+  });
+
+  testWidgets('进度按秒节流：亚秒变化不改时间文本，跨秒才更新', (tester) async {
+    await pumpPlayer(tester, autoPlay: true);
+    expect(find.text('0:00 / 2:00'), findsOneWidget);
+
+    // 播放中每 500ms 轮询一次位置：先只走亚秒
+    fake.position = const Duration(milliseconds: 400);
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
+    expect(find.text('0:00 / 2:00'), findsOneWidget,
+        reason: '亚秒位置变化不该改变时间文本');
+
+    // 跨过一秒边界才更新
+    fake.position = const Duration(milliseconds: 1200);
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
+    expect(find.text('0:01 / 2:00'), findsOneWidget);
+  });
+
+  testWidgets('全屏控制层在播放中自动隐藏（此前永不隐藏）', (tester) async {
+    await pumpPlayer(tester, autoPlay: true);
+    await tester.tap(find.byIcon(Icons.fullscreen_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // 播放中 3.2s 后控制层应自动隐藏
+    await tester.pump(const Duration(milliseconds: 3500));
+
+    // 注意 initialize() 自己会调一次 pause，所以比较**次数**而不是是否出现。
+    final pausesBefore = fake.calls.where((c) => c == 'pause').length;
+
+    // 精确点在**画面正中央**——那里正是播放/暂停按钮的位置，也是最锋利的
+    // 判别点：控制层已隐藏时这一下落到下面的 GestureDetector 上（只唤出控制
+    // 层），若回归成「永不隐藏」则会直接点到按钮、把视频暂停。
+    await tester.tapAt(tester.getCenter(find.byType(VideoPlayer)));
+    await tester.pump();
+    expect(fake.calls.where((c) => c == 'pause').length, pausesBefore,
+        reason: '控制层应当已自动隐藏，首次点击只负责唤出它');
+
+    // 唤出后再点按钮才真的暂停
+    await tester.tap(find.byIcon(Icons.pause_rounded));
+    await tester.pump();
+    expect(fake.calls, contains('pause'));
+  });
+
+  testWidgets('togglePlayback 是唯一一份播放/暂停实现：播放↔暂停，播完从头',
+      (tester) async {
+    // 内嵌与全屏两个入口共用它——此前各写一份，改一处忘一处。
+    final controller =
+        VideoPlayerController.networkUrl(Uri.parse('https://site/a.mp4'));
+    // 不能 await：这个替身的事件流永不关闭，dispose 会卡在取消订阅上，
+    // 而 addTearDown 会等它——整个用例文件就超时了（见第 1 轮的分析）。
+    addTearDown(() {
+      unawaited(controller.dispose());
+    });
+    await controller.initialize();
+
+    togglePlayback(controller);
+    await tester.pump();
+    expect(controller.value.isPlaying, isTrue);
+
+    togglePlayback(controller);
+    await tester.pump();
+    expect(controller.value.isPlaying, isFalse);
+
+    // 播完（位置 == 总时长）时按播放 = 从头重播
+    await controller.seekTo(controller.value.duration);
+    await tester.pump();
+    togglePlayback(controller);
+    await tester.pump();
+    expect(controller.value.isPlaying, isTrue);
+    expect(controller.value.position, Duration.zero);
+
+    // 收尾：播放中的位置轮询是一个 periodic Timer，留着会让测试框架报
+    // 「A Timer is still pending even after the widget tree was disposed」。
+    await controller.pause();
+  });
+
+  testWidgets('url 变化时重建控制器，不复用旧控制器', (tester) async {
+    final url = ValueNotifier<String>('https://site/a.mp4');
+    addTearDown(url.dispose);
+    tester.view.physicalSize = const Size(1080, 2160);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: ValueListenableBuilder<String>(
+          valueListenable: url,
+          builder: (_, value, __) => VideoViewer(url: value, autoPlay: false),
+        ),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(fake.calls, contains('create:https://site/a.mp4'));
+
+    url.value = 'https://site/b.mp4';
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(fake.calls, contains('create:https://site/b.mp4'),
+        reason: '换视频必须换控制器，否则画面还停在旧视频上');
+    // 不断言平台层 dispose：替身的事件流永不关闭，video_player 的
+    // dispose 会停在 _eventSubscription.cancel() 上（真实平台流不这样），
+    // 断言它等于在测替身而不是在测我们的代码。
+    expect(fake.calls.where((c) => c.startsWith('create')), hasLength(2));
   });
 }

@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
+import 'package:boorunova/boorus/engine/json_coerce.dart';
+import 'package:boorunova/boorus/engine/site_presets.dart';
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 
 class SankakuParser {
@@ -6,21 +11,21 @@ class SankakuParser {
   static List<BooruPost> parsePosts(
     String serverId,
     List<dynamic> json, {
-    String baseUrl = 'https://chan.sankakucomplex.com',
+    String baseUrl = kSankakuBaseUrl,
   }) {
-    return json.whereType<Map<String, dynamic>>().map((post) {
-      final id = post['id']?.toString() ?? '';
-      final fileUrl = (post['file_url'] as String?) ?? '';
-      final sampleUrl = (post['sample_url'] as String?) ?? '';
-      final previewUrl = (post['preview_url'] as String?) ?? '';
-      final tags = (post['tags'] as String?) ?? '';
-      final width = (post['width'] as int?) ?? 0;
-      final height = (post['height'] as int?) ?? 0;
-      final rating = (post['rating'] as String?) ?? 'q';
-      final score = (post['score'] as int?) ?? 0;
-      final source = (post['source'] as String?) ?? '';
-      final author = (post['author'] as String?) ?? '';
-      final jpegUrl = (post['jpeg_url'] as String?) ?? '';
+    return parseEach(json, (post) {
+      final id = asStr(post['id']);
+      final fileUrl = asStr(post['file_url']);
+      final sampleUrl = asStr(post['sample_url']);
+      final previewUrl = asStr(post['preview_url']);
+      final tags = asStr(post['tags']);
+      final width = asInt(post['width']);
+      final height = asInt(post['height']);
+      final rating = asStr(post['rating'], fallback: 'q');
+      final score = asInt(post['score']);
+      final source = asStr(post['source']);
+      final author = asStr(post['author']);
+      final jpegUrl = asStr(post['jpeg_url']);
 
       return BooruPost(
         id: id,
@@ -28,22 +33,22 @@ class SankakuParser {
         thumbnailUrl: previewUrl,
         sampleUrl: jpegUrl.isNotEmpty ? jpegUrl : sampleUrl,
         originalUrl: fileUrl,
-        tags: tags.isEmpty ? [] : tags.split(' '),
+        tags: tags.isEmpty ? const [] : tags.split(' '),
         aspectRatio: height > 0 ? width / height : 1.0,
         width: width,
         height: height,
         rating: rating,
         score: score,
-        source: source.isEmpty ? null : source,
+        source: asStrOrNull(source),
         postUrl: id.isEmpty ? null : '$baseUrl/post/show/$id',
-        uploader: author.isEmpty ? null : author,
+        uploader: asStrOrNull(author),
       );
-    }).toList();
+    });
   }
 
   static List<String> parseSuggestions(List<dynamic> json) {
     return json.whereType<Map<String, dynamic>>().map((tag) {
-      return (tag['name'] as String?) ?? '';
+      return asStr(tag['name']);
     }).where((name) => name.isNotEmpty).toList();
   }
 }

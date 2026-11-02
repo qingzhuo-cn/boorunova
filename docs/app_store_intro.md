@@ -47,7 +47,7 @@ BooruNova 将多个 Booru 图站整合进同一个应用，用统一的搜索栏
 
 ### 数据管理
 
-- **完整备份与恢复** — 站点、收藏、历史、黑名单、设置一键导出导入
+- **完整备份与恢复** — 站点、收藏、浏览/搜索历史、下载记录、黑名单、Hosts、设置共 8 类数据；导出走系统分享面板，导入逐段汇报结果
 - **缓存管理** — 一键回收存储空间
 - **首次启动引导** — 全新安装时的简短上手
 
@@ -67,6 +67,8 @@ BooruNova 将多个 Booru 图站整合进同一个应用，用统一的搜索栏
 | Sankaku | chan.sankakucomplex.com |
 | Zerochan | zerochan.net |
 | Rule34 | rule34.xxx |
+| Shimmie2 | paheal.net |
+| KVS（视频站） | rule34video.com |
 
 ---
 

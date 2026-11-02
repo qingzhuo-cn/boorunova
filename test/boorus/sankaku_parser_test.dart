@@ -33,7 +33,9 @@ void main() {
         },
       ];
 
-      final posts = SankakuParser.parsePosts(serverId, json);
+      // 显式传站点 URL（渠道默认值见 site_presets_test）
+      final posts = SankakuParser.parsePosts(serverId, json,
+          baseUrl: 'https://chan.sankakucomplex.com');
       expect(posts, hasLength(2));
 
       final p1 = posts[0];
@@ -69,7 +71,9 @@ void main() {
         {'id': 1},
         42, // 非 Map 被过滤
       ];
-      final posts = SankakuParser.parsePosts(serverId, json);
+      // 显式传站点 URL（渠道默认值见 site_presets_test）
+      final posts = SankakuParser.parsePosts(serverId, json,
+          baseUrl: 'https://chan.sankakucomplex.com');
       expect(posts, hasLength(1));
       expect(posts.first.id, '1');
       expect(posts.first.source, isNull);

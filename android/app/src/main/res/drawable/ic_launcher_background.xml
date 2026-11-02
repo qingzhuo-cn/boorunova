@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 品牌渐变底：与图标前景同款紫渐变（对角 #C026D3 → #6D28D9） -->
+<!-- 品牌渐变底：与图标前景同款「雾蓝 → 淡紫」浅渐变（对角 #D7D1FC → #C6CCFC → #B6CEFB）。
+     刻意不用原来那种又深又纯的紫，前景四颗新星的拖尾与星光才有呼吸空间。 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
@@ -14,8 +15,9 @@
                 android:startY="0"
                 android:endX="108"
                 android:endY="108">
-                <item android:offset="0" android:color="#FFC026D3"/>
-                <item android:offset="1" android:color="#FF6D28D9"/>
+                <item android:offset="0" android:color="#FFD7D1FC"/>
+                <item android:offset="0.52" android:color="#FFC6CCFC"/>
+                <item android:offset="1" android:color="#FFB6CEFB"/>
             </gradient>
         </aapt:attr>
     </path>

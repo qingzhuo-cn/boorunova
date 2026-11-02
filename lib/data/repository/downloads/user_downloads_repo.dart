@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
+import 'dart:io';
+
 import 'package:boorunova/foundation/database/hive_setup.dart';
 import 'package:boorunova/foundation/database/json_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -90,17 +95,60 @@ class UserDownloadsRepo {
 
   /// 按 postId + serverId 精确定位删除。传入 serverId 时只删该站点的记录，
   /// 避免不同站点的同名 post 互相误删；传 null 则删除所有站点下该 id。
-  Future<void> remove(String postId, {String? serverId}) {
-    return _store.update((items) {
+  ///
+  /// [deleteLocalFile] 为 true 时，连带删除记录指向的**本机下载文件**
+  /// （`localPath`）。默认 false：记录只是索引，用户没要求就不动磁盘上的
+  /// 东西。这里只删 BooruNova 自己写在下载目录里的那份，Gal 写进系统相册
+  /// 的副本不受影响（也不该由这里删）——UI 必须把这点告诉用户。
+  Future<void> remove(
+    String postId, {
+    String? serverId,
+    bool deleteLocalFile = false,
+  }) async {
+    // 先取出待删记录：_store.update 之后匹配项就从存储里消失了，拿不到路径。
+    final matched = deleteLocalFile
+        ? getAll()
+            .where((e) =>
+                e.postId == postId &&
+                (serverId == null || e.serverId == serverId))
+            .toList()
+        : const <DownloadEntry>[];
+    await _store.update((items) {
       return items.where((m) {
         if ('${m['postId'] ?? ''}' != postId) return true;
         if (serverId == null) return false;
         return '${m['serverId'] ?? ''}' != serverId;
       }).toList();
     });
+    await _deleteFiles(matched);
   }
 
-  Future<void> clear() => _store.clear();
+  /// 清空全部记录。[deleteLocalFiles] 为 true 时连带删除所有记录指向的
+  /// 本机文件；语义与 [remove] 相同——相册副本不动。
+  Future<void> clear({bool deleteLocalFiles = false}) async {
+    final matched = deleteLocalFiles ? getAll() : const <DownloadEntry>[];
+    await _store.clear();
+    await _deleteFiles(matched);
+  }
+
+  /// 逐个删除本机文件。单个文件被占用/已不存在不能让整段清理中断，
+  /// 空路径直接跳过（记录可能来自旧版本或导入备份）。
+  Future<void> _deleteFiles(List<DownloadEntry> entries) async {
+    for (final entry in entries) {
+      final path = entry.localPath;
+      if (path.isEmpty) continue;
+      try {
+        final file = File(path);
+        // ignore: avoid_slow_async_io
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (_) {
+        // 文件可能已被系统清理或被其他进程占用：删不掉就算了，
+        // 记录已经移除，不应该因为一个文件失败而回滚。
+      }
+    }
+  }
 
   Future<void> saveAll(List<DownloadEntry> entries) {
     return _store.write(entries.map((e) => e.toJson()).toList());

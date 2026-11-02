@@ -1,6 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/boorus/engine/booru_type.dart';
 import 'package:boorunova/data/repository/server/user_server_repo.dart';
+import 'package:boorunova/presentation/l10n/app_strings.dart';
 import 'package:boorunova/presentation/provider/app_settings.dart';
 import 'package:boorunova/presentation/screens/blacklist/blacklist_page.dart';
 import 'package:boorunova/presentation/screens/downloads/downloads_page.dart';
@@ -18,9 +22,11 @@ import 'package:boorunova/presentation/screens/search/search_page.dart';
 import 'package:boorunova/presentation/screens/server/booru_site_template.dart';
 import 'package:boorunova/presentation/screens/server/server_editor_page.dart';
 import 'package:boorunova/presentation/screens/server/server_page.dart';
+import 'package:boorunova/presentation/screens/server/server_preferences_page.dart';
 import 'package:boorunova/presentation/screens/server/server_probe_page.dart';
 import 'package:boorunova/presentation/screens/settings/about_settings_page.dart';
 import 'package:boorunova/presentation/screens/settings/appearance_page.dart';
+import 'package:boorunova/presentation/screens/settings/content_source_page.dart';
 import 'package:boorunova/presentation/screens/settings/data_backup_page.dart';
 import 'package:boorunova/presentation/screens/settings/data_storage_page.dart';
 import 'package:boorunova/presentation/screens/settings/download_settings_page.dart';
@@ -213,6 +219,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => page(const PrivacyPage()),
           ),
           GoRoute(
+            path: 'content-source',
+            name: 'settings-content-source',
+            pageBuilder: (context, state) => page(const ContentSourcePage()),
+          ),
+          GoRoute(
             path: 'about',
             name: 'settings-about',
             pageBuilder: (context, state) => page(const AboutSettingsPage()),
@@ -224,6 +235,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'servers',
         pageBuilder: (context, state) => page(const ServerPage()),
         routes: [
+          GoRoute(
+            path: 'preferences',
+            name: 'servers-preferences',
+            pageBuilder: (context, state) {
+              final extra = state.extra;
+              final serverId = extra is Map
+                  ? extra['serverId'] as String?
+                  : extra is String
+                      ? extra
+                      : null;
+              if (serverId == null || serverId.isEmpty) {
+                return page(const _InvalidRoutePage());
+              }
+              return page(ServerPreferencesPage(serverId: serverId));
+            },
+          ),
           GoRoute(
             path: 'editor',
             name: 'servers-editor',
@@ -272,9 +299,21 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'detail',
             name: 'post-detail',
             pageBuilder: (context, state) {
-              final post = state.extra;
-              if (post is PostSummary) {
-                return page(PostDetailPage(post: post));
+              final extra = state.extra;
+              // 两种形态：直接给 PostSummary（首页头图等入口），或给
+              // {'post': ..., 'fromViewer': true}（从全屏查看器点进来，
+              // 详情页据此把「打开完整查看器」实现为 pop 回原查看器）。
+              if (extra is PostSummary) {
+                return page(PostDetailPage(post: extra));
+              }
+              if (extra is Map) {
+                final post = extra['post'];
+                if (post is PostSummary) {
+                  return page(PostDetailPage(
+                    post: post,
+                    fromViewer: extra['fromViewer'] == true,
+                  ));
+                }
               }
               return page(const _InvalidRoutePage());
             },
@@ -298,13 +337,14 @@ class _InvalidRoutePage extends StatelessWidget {
           children: [
             const Icon(Icons.link_off, size: 48, color: Colors.grey),
             const SizedBox(height: 12),
-            const Text('链接无效', style: TextStyle(fontSize: 16)),
+            Text(T.invalidLink, style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 8),
-            const Text('请从主页重新进入', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            Text(T.invalidLinkHint,
+                style: const TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => context.go('/'),
-              child: const Text('返回主页'),
+              child: Text(T.backToHome),
             ),
           ],
         ),

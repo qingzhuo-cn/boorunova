@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/data/repository/search_history/search_history_repo.dart';
 import 'package:boorunova/presentation/l10n/app_strings.dart';
 import 'package:boorunova/presentation/provider/booru/page_state.dart';
@@ -21,6 +24,26 @@ class SearchHistoryPage extends ConsumerWidget {
               icon: const Icon(Icons.delete_sweep),
               tooltip: T.clearSearchHistoryTip,
               onPressed: () async {
+                // 与其他清空入口同一口径：先确认再清。此前这个按钮
+                // 直接清空全部搜索历史，误触无法撤销。
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text(T.clearSearchHistory),
+                    content: Text(T.clearSearchHistorySub),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: Text(T.cancel),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: Text(T.clear),
+                      ),
+                    ],
+                  ),
+                );
+                if (!(confirmed ?? false)) return;
                 await ref.read(searchHistoryRepoProvider).clear();
                 ref.invalidate(searchHistoryRepoProvider);
               },
@@ -50,7 +73,12 @@ class SearchHistoryPage extends ConsumerWidget {
                   },
                 ),
                 onTap: () {
-                  ref.read(booruPageStateProvider.notifier).search(history[i]);
+                  // 从历史重跑搜索要带上当前分级：此前只传关键词，
+                  // search() 会把 _currentRating 重置成 null，用户选的安全
+                  // 过滤被静默放开。
+                  final notifier =
+                      ref.read(booruPageStateProvider.notifier);
+                  notifier.search(history[i], rating: notifier.currentRating);
                   context.go('/');
                 },
               ),

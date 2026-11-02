@@ -9,6 +9,7 @@ PostSummary _post({
   String original = 'https://x.test/o.jpg',
   String serverId = 'srv',
   String? postUrl = 'https://x.test/post/1',
+  String? duration,
 }) =>
     PostSummary(
       id: id,
@@ -24,6 +25,7 @@ PostSummary _post({
       serverId: serverId,
       source: 'src',
       postUrl: postUrl,
+      duration: duration,
     );
 
 void main() {
@@ -220,6 +222,15 @@ void main() {
       expect(post.tagCharacter, ['c']);
       expect(post.tagCopyright, ['cr']);
       expect(post.tagMeta, ['m']);
+    });
+
+    test('视频时长走独立字段并随收藏往返', () {
+      // 回归点：KVS 曾把时长塞进 uploader，字段名与内容不符；显示侧也
+      // 没有任何消费点。现在它是自己的字段，且必须活过 toPost/fromJson。
+      final src = _post(original: 'https://x.test/v.mp4', duration: '05:12');
+      expect(src.toPost().duration, '05:12');
+      expect(src.toPost().uploader, isNull);
+      expect(BooruPost.fromJson(src.toPost().toJson()).duration, '05:12');
     });
 
     test('可 JSON 往返，收藏持久化不丢字段', () {

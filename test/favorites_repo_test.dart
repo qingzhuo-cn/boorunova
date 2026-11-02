@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 import 'package:boorunova/data/repository/favorites/user_favorite_repo.dart';
+import 'package:boorunova/foundation/database/hive_setup.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 
@@ -26,8 +27,9 @@ void main() {
     // 绕过 path_provider，直接指向临时目录
     tempDir = Directory.systemTemp.createTempSync('boorunova_fav_test');
     Hive.init(tempDir.path);
-    await Hive.openBox('settings');
-    await Hive.openBox('servers');
+    // 用 HiveSetup 的常量而不是字面量：box 名改了，这里跟着改
+    await Hive.openBox(HiveSetup.settingsBoxName);
+    await Hive.openBox(HiveSetup.serversBoxName);
   });
 
   tearDown(() async {

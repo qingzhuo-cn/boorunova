@@ -34,7 +34,9 @@ void main() {
         },
       ];
 
-      final posts = Rule34Parser.parsePosts(serverId, json);
+      // 显式传站点 URL（渠道默认值见 site_presets_test）
+      final posts = Rule34Parser.parsePosts(serverId, json,
+          siteUrl: 'https://rule34.xxx');
       expect(posts, hasLength(2));
 
       final p1 = posts[0];
@@ -86,7 +88,9 @@ void main() {
         {'id': 99}, // 大量字段缺失
         'not a map', // 被 whereType 过滤
       ];
-      final posts = Rule34Parser.parsePosts(serverId, json);
+      // 显式传站点 URL（渠道默认值见 site_presets_test）
+      final posts = Rule34Parser.parsePosts(serverId, json,
+          siteUrl: 'https://rule34.xxx');
       expect(posts, hasLength(1));
       final p = posts.first;
       expect(p.id, '99');

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'dart:convert';
 
 import 'package:boorunova/boorus/engine/base_booru_repository.dart';
@@ -23,12 +26,19 @@ class Shimmie2Repository extends BaseBooruRepository {
   /// JSON 接口可用性。null = 还没探过。实测 paheal 为 false。
   bool? _jsonApiAvailable;
 
+  /// 单页上限（新版 JSON 接口的 limit ≤ 100；老 HTML 分支由解析侧截断）。
+  static const int kMaxPageSize = 100;
+
+  @override
+  int get maxPageSize => kMaxPageSize;
+
   @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
+    final limit = clampLimit(query.limit);
     // 只探一次：paheal 上这个端点恒 404，每次搜索都试等于白花一次往返
     _jsonApiAvailable ??= await _probeJsonApi();
     if (_jsonApiAvailable ?? false) {
-      final viaJson = await _searchViaJson(query);
+      final viaJson = await _searchViaJson(query, limit);
       if (viaJson != null) return viaJson;
       _jsonApiAvailable = false;
     }
@@ -51,11 +61,11 @@ class Shimmie2Repository extends BaseBooruRepository {
       serverId,
       dio.options.baseUrl,
       html,
-      limit: query.limit,
+      limit: limit,
     );
     return BooruPageResult(
       posts: posts.map((p) => p.toSummary(serverId)).toList(),
-      hasMore: posts.isNotEmpty && posts.length >= query.limit,
+      hasMore: posts.isNotEmpty && posts.length >= limit,
     );
   }
 
@@ -77,13 +87,13 @@ class Shimmie2Repository extends BaseBooruRepository {
     }
   }
 
-  Future<BooruPageResult?> _searchViaJson(BooruQuery query) async {
+  Future<BooruPageResult?> _searchViaJson(BooruQuery query, int limit) async {
     try {
       final response = await dio.get(
         '/api/post/list',
         queryParameters: {
           'query': query.tags,
-          'limit': query.limit,
+          'limit': limit,
           'page': query.page,
         },
         options: Options(responseType: ResponseType.plain),
@@ -94,7 +104,7 @@ class Shimmie2Repository extends BaseBooruRepository {
       if (posts.isEmpty) return null;
       return BooruPageResult(
         posts: posts.map((p) => p.toSummary(serverId)).toList(),
-        hasMore: posts.length >= query.limit,
+        hasMore: posts.length >= limit,
       );
     } catch (_) {
       return null;

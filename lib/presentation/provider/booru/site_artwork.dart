@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/presentation/provider/booru/page_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,8 +21,17 @@ final siteArtworkPostsProvider =
     // 站点还没选好，或已经切走：不要拿上一个站点的图当这个站点的头图。
     if (repo == null || repo.serverId != serverId) return const [];
 
+    // keepAlive 必须在第一个 await 之前拿到：await 期间抽屉可能已经关闭，
+    // provider 被 autoDispose 销毁，await 之后再调 ref.keepAlive() 会作用在
+    // 已销毁的 Ref 上（报错且缓存不生效）。先拿 link，空结果再 close()，
+    // 保持「只缓存非空结果」的语义——空结果多半是断网，留住会让头图到重启
+    // 都恢复不了。
+    final link = ref.keepAlive();
     final posts = await fetchArtworkCandidates(repo);
-    if (posts.isNotEmpty) ref.keepAlive();
+    if (posts.isEmpty) {
+      link.close();
+      return const [];
+    }
     return posts;
   },
 );

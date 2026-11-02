@@ -1,3 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
+import 'package:boorunova/boorus/engine/base_booru_repository.dart';
+import 'package:boorunova/boorus/engine/json_coerce.dart';
+import 'package:boorunova/boorus/engine/site_presets.dart';
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 
 class E621Parser {
@@ -6,29 +12,29 @@ class E621Parser {
   static List<BooruPost> parsePosts(
     String serverId,
     List<dynamic> json, {
-    String baseUrl = 'https://e621.net',
+    String baseUrl = kE621BaseUrl,
   }) {
-    return json.whereType<Map<String, dynamic>>().map((post) {
-      final id = post['id']?.toString() ?? '';
-      // 嵌套字段可能是畸形类型（如字符串），安全转型避免整个列表崩溃
-      final file = _asMap(post['file']);
-      final sample = _asMap(post['sample']);
-      final preview = _asMap(post['preview']);
-      final tagsMap = _asMap(post['tags']);
+    return parseEach(json, (post) {
+      final id = asStr(post['id']);
+      // 嵌套字段可能是畸形类型（如字符串），宽容取值后不会再抛
+      final file = asMap(post['file']);
+      final sample = asMap(post['sample']);
+      final preview = asMap(post['preview']);
+      final tagsMap = asMap(post['tags']);
 
-      final fileUrl = (file['url'] as String?) ?? '';
-      final sampleUrl = (sample['url'] as String?) ?? '';
-      final previewUrl = (preview['url'] as String?) ?? '';
-      final width = (file['width'] as int?) ?? 0;
-      final height = (file['height'] as int?) ?? 0;
+      final fileUrl = asStr(file['url']);
+      final sampleUrl = asStr(sample['url']);
+      final previewUrl = asStr(preview['url']);
+      final width = asInt(file['width']);
+      final height = asInt(file['height']);
 
-      final tagGeneral = _tagList(tagsMap['general']);
-      final tagArtist = _tagList(tagsMap['artist']);
-      final tagCharacter = _tagList(tagsMap['character']);
-      final tagCopyright = _tagList(tagsMap['copyright']);
-      final tagMeta = _tagList(tagsMap['meta']);
-      final tagSpecies = _tagList(tagsMap['species']);
-      final tagLore = _tagList(tagsMap['lore']);
+      final tagGeneral = asStrList(tagsMap['general']);
+      final tagArtist = asStrList(tagsMap['artist']);
+      final tagCharacter = asStrList(tagsMap['character']);
+      final tagCopyright = asStrList(tagsMap['copyright']);
+      final tagMeta = asStrList(tagsMap['meta']);
+      final tagSpecies = asStrList(tagsMap['species']);
+      final tagLore = asStrList(tagsMap['lore']);
 
       final allTags = [
         ...tagGeneral,
@@ -40,10 +46,11 @@ class E621Parser {
         ...tagLore,
       ];
 
-      final rating = (post['rating'] as String?) ?? 'q';
-      final scoreMap = _asMap(post['score']);
-      final score = (scoreMap['total'] as int?) ?? 0;
-      final sources = _tagList(post['sources']);
+      // 四档归一：e621 同样是 g/s/q/e，s=sensitive 并入 q。
+      final rating =
+          normalizeRatingFourTier(asStr(post['rating'], fallback: 'q'));
+      final score = asInt(asMap(post['score'])['total']);
+      final sources = asStrList(post['sources']);
       final source = sources.isNotEmpty ? sources.first : '';
 
       return BooruPost(
@@ -63,20 +70,9 @@ class E621Parser {
         height: height,
         rating: rating,
         score: score,
-        source: source.isEmpty ? null : source,
+        source: asStrOrNull(source),
         postUrl: id.isEmpty ? null : '$baseUrl/posts/$id',
       );
-    }).toList();
-  }
-
-  static Map<String, dynamic> _asMap(Object? input) {
-    return input is Map<String, dynamic> ? input : {};
-  }
-
-  static List<String> _tagList(Object? input) {
-    if (input is List) {
-      return input.whereType<String>().toList();
-    }
-    return [];
+    });
   }
 }

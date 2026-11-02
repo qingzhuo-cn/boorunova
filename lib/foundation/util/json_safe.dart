@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'dart:convert';
 
 /// 安全解析 JSON 字符串为 List；非列表类型或解析失败返回空列表，

@@ -150,6 +150,44 @@ void main() {
       expect(servedRequests, 0);
     });
   });
+
+  group('探测请求也必须走 hosts 映射（回归）', () {
+    test('配了映射：createProbe 回落到共享拦截器，连得上映射地址', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() => server.close(force: true));
+      server.listen((request) {
+        request.response
+          ..statusCode = 200
+          ..write('ok');
+        request.response.close();
+      });
+
+      final hosts = UserHostsRepo();
+      await hosts.add(const HostEntry(domain: 'blocked.test', ip: '127.0.0.1'));
+      await HiveSetup.settingsBox
+          .put('app_settings', const {'hostsEnabled': true});
+
+      // 只设共享单例、不显式传参：这正是健康面板的调用方式
+      DioFactory.sharedHostsInterceptor =
+          HostsInterceptor(enabled: false, repo: hosts);
+      addTearDown(() => DioFactory.sharedHostsInterceptor = null);
+
+      final dio = DioFactory.createProbe();
+      final response =
+          await dio.get<dynamic>('http://blocked.test:${server.port}/');
+
+      expect(response.statusCode, 200,
+          reason: '探测绕开 hosts 映射的话，浏览正常但面板会说「连不上」');
+    });
+
+    test('没有映射时同名地址连不上（对照：证明上面确实是映射起的作用）', () async {
+      final dio = DioFactory.createProbe();
+      await expectLater(
+        dio.get<dynamic>('http://not-mapped-anywhere.test:1/'),
+        throwsA(anything),
+      );
+    });
+  });
 }
 
 String _fixture(String name) =>

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/base_booru_repository.dart';
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/boorus/kvs/parser/kvs_parser.dart';
@@ -19,6 +22,16 @@ class KvsRepository extends BaseBooruRepository {
     required super.dio,
     required super.serverId,
   });
+
+  /// 单页上限。
+  ///
+  /// KVS 是 HTML 列表页，`limit` 只用于**解析侧截断**（每页固定约 24 条）；
+  /// hasMore 不看它（见 [kvsHasMore]），所以这里夹持只是防止调用方传入
+  /// 一个荒谬的上限导致一页解析上千条。
+  static const int kMaxPageSize = 100;
+
+  @override
+  int get maxPageSize => kMaxPageSize;
 
   /// 上一次请求的首条 id，用于识别服务端的分页夹持。键是查询签名。
   final Map<String, String> _firstIdOfPreviousPage = {};
@@ -72,7 +85,7 @@ class KvsRepository extends BaseBooruRepository {
       serverId,
       dio.options.baseUrl,
       html,
-      limit: query.limit,
+      limit: clampLimit(query.limit),
     );
     if (posts.isEmpty) {
       return const BooruPageResult(posts: [], hasMore: false);

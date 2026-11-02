@@ -1,9 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'dart:io';
 
 import 'package:boorunova/data/repository/downloads/user_downloads_repo.dart';
 import 'package:boorunova/data/repository/history/user_history_repo.dart';
+import 'package:boorunova/foundation/util/image_cache_manager.dart';
 import 'package:boorunova/presentation/l10n/app_strings.dart';
 import 'package:boorunova/presentation/widgets/common/app_placeholders.dart' show SectionHeader;
+import 'package:boorunova/presentation/widgets/common/clear_confirm_dialog.dart';
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +22,11 @@ class DataStoragePage extends StatefulWidget {
 
 class _DataStoragePageState extends State<DataStoragePage> {
   String _cacheSize = '';
+
+  /// 磁盘图片缓存的占用（字节）。独立于 [_cacheSize]：后者是「整个应用临时
+  /// 目录」，前者只是 extended_image 的图片缓存那一块。
+  late final Future<int> _diskCacheBytes =
+      ImageCacheManager.currentBytes();
 
   @override
   void initState() {
@@ -99,6 +109,23 @@ class _DataStoragePageState extends State<DataStoragePage> {
     } catch (_) {}
   }
 
+  /// 清空前的确认对话框（全应用统一实现，见 [confirmClearDialog]）。
+  ///
+  /// 清除浏览历史与下载记录都不可撤销，而这里此前点一下就直接清空，和别处
+  /// 的口径不一致；下载记录现在还会问「是否连带删除本机文件」——与下载页
+  /// 的同一个动作保持同一破坏力。
+  Future<ClearConfirmation> _confirmClear({
+    required String title,
+    required String content,
+    bool withFileOption = false,
+  }) =>
+      confirmClearDialog(
+        context,
+        title: title,
+        content: content,
+        withFileOption: withFileOption,
+      );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -124,13 +151,38 @@ class _DataStoragePageState extends State<DataStoragePage> {
         Consumer(
           builder: (context, ref, _) {
             final cache = PaintingBinding.instance.imageCache;
-            final imgs = cache.currentSize;
             final imgBytes = cache.currentSizeBytes;
             final mb = (imgBytes / 1048576).toStringAsFixed(1);
             return ListTile(
               leading: const Icon(Icons.image_outlined),
               title: Text(T.imageCache),
-              subtitle: Text(T.isEn ? '$imgs images, $mb MB' : '$imgs 张, $mb MB'),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(T.memoryCacheUsage(
+                    mb,
+                    ImageCacheManager.memoryCacheMaxImages,
+                    (ImageCacheManager.memoryCacheMaxBytes / 1048576)
+                        .round(),
+                  )),
+                  // 磁盘缓存占用 + 自动上限（OPT §2.2）：此前只显示内存占用，
+                  // 用户看不到「磁盘上到底堆了多少」
+                  FutureBuilder<int>(
+                    future: _diskCacheBytes,
+                    builder: (context, snapshot) {
+                      final bytes = snapshot.data;
+                      if (bytes == null) return const SizedBox.shrink();
+                      final diskMb = (bytes / 1048576).toStringAsFixed(1);
+                      final capMb =
+                          (ImageCacheManager.defaultMaxBytes / 1048576).round();
+                      return Text(
+                        T.diskCacheUsage(diskMb, capMb),
+                        style: const TextStyle(fontSize: 11),
+                      );
+                    },
+                  ),
+                ],
+              ),
               trailing: TextButton(
                 onPressed: () {
                   cache.clear();
@@ -153,7 +205,14 @@ class _DataStoragePageState extends State<DataStoragePage> {
               subtitle: Text('$historyCount ${T.recordsUnit}'),
               trailing: TextButton(
                 onPressed: () async {
+                  final confirmation = await _confirmClear(
+                    title: T.clearHistoryTitle,
+                    content: T.clearHistoryContent,
+                  );
+                  if (!confirmation.confirmed) return;
+                  if (!mounted) return;
                   await ref.read(userHistoryRepoProvider).clear();
+                  if (!mounted) return;
                   ref.invalidate(userHistoryRepoProvider);
                 },
                 child: Text(T.clearAction),
@@ -170,7 +229,16 @@ class _DataStoragePageState extends State<DataStoragePage> {
               subtitle: Text('$downloadCount ${T.recordsUnit}'),
               trailing: TextButton(
                 onPressed: () async {
-                  await ref.read(userDownloadsRepoProvider).clear();
+                  final confirmation = await _confirmClear(
+                    title: T.clearDownloadHistoryTitle,
+                    content: T.clearDownloadHistoryContent,
+                    withFileOption: true,
+                  );
+                  if (!confirmation.confirmed) return;
+                  if (!mounted) return;
+                  await ref.read(userDownloadsRepoProvider).clear(
+                      deleteLocalFiles: confirmation.deleteLocalFiles);
+                  if (!mounted) return;
                   ref.invalidate(userDownloadsRepoProvider);
                 },
                 child: Text(T.clearAction),

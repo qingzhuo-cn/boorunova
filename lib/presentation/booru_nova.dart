@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'dart:async';
 
 import 'package:boorunova/foundation/database/hive_setup.dart';
@@ -25,15 +28,26 @@ class _BooruNovaState extends ConsumerState<BooruNova>
     with WidgetsBindingObserver {
   bool _splashVisible = true;
 
+  /// 启动期「数据已隔离」提示需要 MaterialApp 之上的出口
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     if (widget.bootError != null) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final settings = ref.read(settingsProvider);
-      ref.read(appThemeModeProvider.notifier).state = settings.themeMode;
-    });
+    // Hive 从损坏的 box 里恢复过：一次性告诉用户，而不是让他以为数据凭空消失。
+    if (HiveSetup.recoveredFromCorruption) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _messengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(T.recoveredDataHint),
+            duration: const Duration(seconds: 8),
+          ),
+        );
+      });
+    }
   }
 
   @override
@@ -58,22 +72,24 @@ class _BooruNovaState extends ConsumerState<BooruNova>
     if (bootError != null) return _BootFailureApp(error: bootError);
 
     final router = ref.watch(routerProvider);
-    final themeMode = ref.watch(appThemeModeProvider);
-    final settings = ref.watch(settingsProvider);
-    final accentColor = Color(settings.accentColor);
+    // 分字段 select：改列数/下载质量等与外观无关的设置时，不再重建整个
+    // MaterialApp（连带 3 份 ThemeData）。主题的唯一来源就是 settings。
+    final themeMode = ref.watch(settingsProvider.select((s) => s.themeMode));
+    final accent = ref.watch(settingsProvider.select((s) => s.accentColor));
+    final language = ref.watch(settingsProvider.select((s) => s.language));
 
     // 同步静态文案语言；locale 作为 key 使语言切换时整树重建，
     // 所有读取 T.xxx 的界面随之刷新。
     // 副作用的取舍：换 key 会重建 go_router 维护的路由 State（如深层编辑页、
     // 引导进度）。为抵消这一点，引导页等需要跨重建保留的状态已提升到
     // Riverpod provider（见 onboarding 状态），并给路由页面提供稳定 key。
-    T.setLocale(settings.language);
-    final isEn = settings.language.startsWith('en');
-
-    final darkTheme = switch (themeMode) {
-      AppThemeMode.midnight || AppThemeMode.system => AppTheme.midnight(accentColor: accentColor),
-      _ => AppTheme.dark(accentColor: accentColor),
-    };
+    // 'system' 要在这里算成真实语言：T 是静态类，不看 MaterialApp 的 locale
+    final effective = resolveLanguage(
+      language,
+      WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+    );
+    T.setLocale(effective);
+    final isEn = effective == 'en';
 
     // Stack 在 MaterialApp 之外，无 Directionality 祖先，需显式指定
     return Stack(
@@ -82,9 +98,14 @@ class _BooruNovaState extends ConsumerState<BooruNova>
         MaterialApp.router(
           title: 'BooruNova',
           debugShowCheckedModeBanner: false,
+          scaffoldMessengerKey: _messengerKey,
           routerConfig: router,
-          theme: AppTheme.light(accentColor: accentColor),
-          darkTheme: darkTheme,
+          theme: AppTheme.lightFor(accent),
+          // 观感约定（有意设计，勿"顺手统一"）：显式「深色」用普通暗色，
+          // 「午夜」与「跟随系统」的暗色用午夜（见 AppTheme.darkFor）。
+          // 设置页目前未说明这一点，需要文案时改 appearance_page.dart
+          // 的 modeSystem 项（本次修复范围不含 screens/）。
+          darkTheme: AppTheme.darkFor(themeMode, accent),
           themeMode: _resolveThemeMode(themeMode),
           locale: isEn ? const Locale('en', 'US') : const Locale('zh', 'CN'),
           supportedLocales: const [
@@ -150,6 +171,14 @@ class _BootFailureApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 降级页早于 settings 可读（Hive 打不开），也就早于正常流程里的
+    // T.setLocale；不在这里按系统语言补一次，英文系统用户会看到一页中文。
+    // 口径与 MaterialApp 的 locale 解析一致：只有系统语言是 en 才用英文，
+    // 其余（含不支持的语言）都回落中文。
+    T.setLocale(resolveLanguage(
+      kLanguageSystem,
+      WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+    ));
     final dark = WidgetsBinding.instance.platformDispatcher.platformBrightness ==
         Brightness.dark;
     final scheme = ColorScheme.fromSeed(

@@ -1,12 +1,17 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'dart:convert';
 
 import 'package:boorunova/boorus/danbooru/danbooru.dart';
 import 'package:boorunova/boorus/danbooru/danbooru_repository.dart';
 import 'package:boorunova/boorus/e621/e621.dart';
 import 'package:boorunova/boorus/e621/e621_repository.dart';
+import 'package:boorunova/boorus/engine/booru_capabilities.dart';
 import 'package:boorunova/boorus/engine/booru_engine.dart';
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/boorus/engine/booru_type.dart';
+import 'package:boorunova/boorus/engine/site_presets.dart';
 import 'package:boorunova/boorus/gelbooru_v2/gelbooru_v2.dart';
 import 'package:boorunova/boorus/gelbooru_v2/gelbooru_v2_repository.dart';
 import 'package:boorunova/boorus/kvs/kvs.dart';
@@ -38,6 +43,15 @@ final booruRegistryProvider = Provider<BooruRegistry>((ref) {
   DioFactory.sharedHostsInterceptor = interceptor;
   return registry;
 });
+
+/// 当前活动站点的引擎能力。
+///
+/// 由 `home_page` 在切站/启动时写入：站点类型在那边才知道（`BooruRepository`
+/// 本身不认识能力声明）。UI（搜索页的评级选项、安全模式闸门）读它来决定
+/// 「这个入口对当前站点有没有意义」。默认值是最宽松的一组，避免启动早期把
+/// 入口误藏起来。
+final activeCapabilitiesProvider =
+    StateProvider<BooruCapabilities>((ref) => const BooruCapabilities());
 
 final hostsInterceptorProvider = Provider<HostsInterceptor>((ref) {
   final repo = ref.read(userHostsRepoProvider);
@@ -140,22 +154,33 @@ class BooruRegistry {
     BooruType.kvs: '/latest-updates/1/',
   };
 
-  /// 探测时的响应体特征校验。
+  /// 探测时的响应体特征校验：**每个类型要求全部标记都出现**。
   ///
   /// 只看状态码会把站点判错：实测 safebooru.org 的 `/?json=1` 返回 200
   /// （HTML 首页），排在前面的 zerochan 因此会把 safebooru 认成自己。
-  /// 这里对每个类型补一个「响应里应该有这个」的特征。
-  static const _probeSignatures = <BooruType, String>{
-    BooruType.danbooru: '"id"',
-    BooruType.moebooru: '"id"',
-    BooruType.e621: '"posts"',
-    BooruType.sankaku: '"id"',
-    BooruType.zerochan: '"items"',
-    BooruType.gelbooruV2: '<post',
-    BooruType.rule34: '<post',
-    BooruType.safebooru: '<post',
-    BooruType.shimmie2: '/post/view/',
-    BooruType.kvs: '/videos/',
+  ///
+  /// 标记取自**各自 parser 真正读取的键**，而不是随手挑一个：
+  /// - 单个 `"id"` 太弱——任何 JSON API 都可能有它。此前探测走 JSON 解析、
+  ///   特征永远匹配不上，所以「过弱」没有后果；修好解析后（取原始字符串）
+  ///   弱特征会真的**误认**陌生站点，于是必须收紧（AUDIT M3 的遗留项）。
+  /// - 多个标记是 AND：命中要同时满足，误报面小得多。
+  static const _probeSignatures = <BooruType, List<String>>{
+    // danbooru 用 tag_string + preview_file_url（moebooru/sankaku 用 preview_url）
+    BooruType.danbooru: ['"tag_string"', '"preview_file_url"'],
+    // moebooru/konachan 的 /post.json
+    BooruType.moebooru: ['"preview_url"', '"sample_url"'],
+    BooruType.e621: ['"posts"'],
+    BooruType.sankaku: ['"file_url"', '"sample_url"', '"preview_url"'],
+    BooruType.zerochan: ['"items"'],
+    // 这三个的探测路径带 json=1（与仓库实际请求的形态一致），返回的是
+    // JSON；此前写 '<post'（XML 特征）→ 按类型探测**必然失败**，只靠
+    // scanner 的域名捷径兜底。改用 JSON DAPI 里稳定存在的键。
+    // DAPI 的 JSON 里 preview_url 与 file_url 同时存在
+    BooruType.gelbooruV2: ['"preview_url"', '"file_url"'],
+    BooruType.rule34: ['"preview_url"', '"file_url"'],
+    BooruType.safebooru: ['"preview_url"', '"file_url"'],
+    BooruType.shimmie2: ['/post/view/'],
+    BooruType.kvs: ['/videos/'],
   };
 
   Future<BooruType?> probe(String baseUrl, {BooruType? singleType}) async {
@@ -169,44 +194,92 @@ class BooruRegistry {
       if (byDomain != null) return byDomain;
     }
 
-    final types = singleType != null ? [singleType] : _probePaths.keys;
-    for (final type in types) {
-      final path = _probePaths[type];
-      if (path == null) continue;
-      try {
-        final response = await dio.get('$url$path');
-        if (response.statusCode != 200) continue;
-        // 状态码之外还要看响应体特征：证不了自己的类型不算命中。
-        final signature = _probeSignatures[type];
-        if (signature == null) return type;
-        final body = response.data?.toString() ?? '';
-        if (body.contains(signature)) return type;
-      } catch (_) {
-        continue;
-      }
+    final types = singleType != null
+        ? [singleType]
+        : _probePaths.keys.toList(growable: false);
+
+    // 全部并发。此前串行 × 单条 15s 超时，10 个引擎最坏 ≈ 150s ——
+    // 添加一个站点要站着等两分半钟。并发后上界是**最慢的一条**（15s），
+    // 正常站点通常 1s 内出结果。
+    //
+    // 取结果时仍按 _probePaths 的声明顺序选优先级最高的命中，而不是
+    // 「谁先返回谁赢」：顺序是刻意排的（例如 safebooru 的 /?json=1 会返回
+    // 200 的 HTML 首页，让 zerochan 抢先命中就会认错站）。
+    // 并发**发起**、按优先级**收割**：
+    // - 并发发起：最坏耗时是「最慢的一条」，而不是十条之和；
+    // - 按序收割：第 k 条命中就返回，**不等** k 之后那些还没回来的请求。
+    //   此前是 Future.wait 全收完再看，于是只要有任何一条挂到 15s 超时，
+    //   即使第 0 条 200ms 就命中了，用户也要站着等满 15s。
+    //
+    // 不能「谁先返回谁赢」：顺序是刻意排的（safebooru 的 /?json=1 会返回 200
+    // 的 HTML 首页，让 zerochan 抢先命中就会认错站）。
+    final pending = [for (final type in types) _matches(dio, url, type)];
+    for (var i = 0; i < types.length; i++) {
+      if (await pending[i]) return types[i];
     }
     return null;
   }
 
+  /// 单条探测：GET 该类型的探测路径，再用 [matchesProbeResponse] 判定。
+  ///
+  /// **必须用 ResponseType.plain**：特征串是形如 `"preview_url"` 的**带引号** JSON
+  /// 键。用默认的 JSON 解析时 dio 会把响应解成 Map/List，`toString()` 出来的
+  /// 是 `{preview_url: x}` —— 引号没了，特征永远匹配不上，于是「按类型探测」
+  /// 对**所有** JSON 引擎静默失效（只有域名捷径还在兜底，自建站必判不出来）。
+  /// 纯函数单测喂的是原始字符串，所以这个坑一直没被现有的探测测试发现。
+  Future<bool> _matches(Dio dio, String url, BooruType type) async {
+    final path = _probePaths[type];
+    if (path == null) return false;
+    try {
+      final response = await dio.get(
+        '$url$path',
+        options: Options(responseType: ResponseType.plain),
+      );
+      return matchesProbeResponse(
+        response.statusCode ?? 0,
+        response.data?.toString() ?? '',
+        type,
+      );
+    } catch (_) {
+      // 连接失败 / 超时 = 不匹配，不中断其余并发探测
+      return false;
+    }
+  }
+
+  /// 纯函数：状态码 + 响应体特征 → 是否算命中。抽出来是为了能单测
+  /// （探测逻辑里有域名顺序陷阱，靠真机试错代价太高）。
+  static bool matchesProbeResponse(int statusCode, String body, BooruType type) {
+    if (statusCode != 200) return false;
+    final markers = _probeSignatures[type];
+    if (markers == null) return true;
+    // AND：全部标记都要出现。任一缺失就当没命中——宁可让用户手选类型，
+    // 也不要把陌生站点认成某个引擎（认错了后续请求全会打错端点）。
+    return markers.every(body.contains);
+  }
+
   BooruType? scanner(String url) {
-    final lower = url.toLowerCase();
-    final defaultUrls = <BooruType, String>{
-      BooruType.danbooru: 'danbooru.donmai.us',
-      BooruType.gelbooruV2: 'gelbooru.com',
-      BooruType.moebooru: 'yande.re',
-      BooruType.e621: 'e621.net',
-      BooruType.sankaku: 'sankakucomplex.com',
-      BooruType.zerochan: 'zerochan.net',
-      BooruType.rule34: 'rule34.xxx',
-      BooruType.safebooru: 'safebooru.org',
-      // rule34 家族与视频站
-      BooruType.shimmie2: 'paheal.net',
-      BooruType.kvs: 'rule34video.com',
-    };
-    for (final entry in defaultUrls.entries) {
-      if (lower.contains(entry.value)) return entry.key;
+    final host = _hostOf(url);
+    if (host.isEmpty) return null;
+    // 域名表来自 site_presets（出厂预置的唯一数据面）。Play 版该表为空，
+    // 所有 URL 都走 probe()——探测特征是协议层字符串，不含站点名。
+    for (final entry in kPresetDomains.entries) {
+      final domain = entry.value;
+      // 按 host 的边界匹配（精确域名或其子域），不用 contains：
+      // `zerochan.net.evil.com` 含 "zerochan.net"，contains 会把它当成
+      // zerochan，等于把域名判定交给攻击者。
+      if (host == domain || host.endsWith('.$domain')) return entry.key;
     }
     return null;
+  }
+
+  /// 从用户输入里取 host：允许没写 scheme（BYO-Server 下用户手填 URL 是
+  /// 常态），并丢掉端口与路径。
+  static String _hostOf(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return '';
+    final withScheme =
+        trimmed.contains('://') ? trimmed : 'https://$trimmed';
+    return (Uri.tryParse(withScheme)?.host ?? '').toLowerCase();
   }
 
   bool isRegistered(BooruType type) => _factories.containsKey(type);
@@ -225,8 +298,17 @@ class BooruRegistry {
       headers['Authorization'] = 'Basic $basic';
     }
 
+    // 兜底域名来自 site_presets；Play 版它是空串，此时**必须**由调用方
+    // 提供 baseUrl（BYO：应用不内置任何来源）。这里明确抛错，而不是让
+    // 空 baseUrl 拼出相对路径、最后在某个站点上以一句莫名的 404 收场。
+    final resolvedBaseUrl = baseUrl ?? engine.booru.baseUrl;
+    if (resolvedBaseUrl.isEmpty) {
+      throw StateError(
+          '缺少 baseUrl：本构建不内置任何站点，必须由服务器配置提供');
+    }
+
     final dio = DioFactory.create(
-      baseUrl: baseUrl ?? engine.booru.baseUrl,
+      baseUrl: resolvedBaseUrl,
       headers: headers,
       hostsInterceptor: hostsInterceptor,
     );

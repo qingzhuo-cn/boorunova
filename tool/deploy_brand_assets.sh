@@ -47,8 +47,9 @@ Resize-To \"\$g/ic_launcher_fg.png\" \"\$r/drawable-hdpi/ic_launcher_foreground.
 Resize-To \"\$g/ic_launcher_fg.png\" \"\$r/drawable-xhdpi/ic_launcher_foreground.png\" 216
 Resize-To \"\$g/ic_launcher_fg.png\" \"\$r/drawable-xxhdpi/ic_launcher_foreground.png\" 324
 Resize-To \"\$g/ic_launcher_fg.png\" \"\$r/drawable-xxxhdpi/ic_launcher_foreground.png\" 432
-# 启动 logo（透明底）：居中用高分辨率 512px（层列表 gravity=center 缩放到 120dp）
-Resize-To \"\$g/splash_logo.png\" \"\$r/drawable-xxhdpi/splash_logo.png\" 512
+# 启动 logo（透明底）：层列表 gravity=center 按 200dp 绘制（与 BrandSplash 同尺寸），
+# xxhdpi 下 200dp≈600px，出 768px 留余量
+Resize-To \"\$g/splash_logo.png\" \"\$r/drawable-xxhdpi/splash_logo.png\" 768
 Write-Output "  PNG deployed"
 "
 

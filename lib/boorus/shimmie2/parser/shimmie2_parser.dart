@@ -1,4 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/base_booru_repository.dart';
+import 'package:boorunova/boorus/engine/json_coerce.dart';
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 
 /// Shimmie2 / paheal 系图站的解析。
@@ -35,14 +39,14 @@ class Shimmie2Parser {
       final id = map['id']?.toString() ?? '';
       if (id.isEmpty) continue;
 
-      final file = _str(map['file']) ?? _str(map['image']) ?? '';
-      final preview = _str(map['preview']) ?? _str(map['thumbnail']) ?? '';
-      final sample = _str(map['sample']) ?? '';
+      final file = asStrOrNull(map['file']) ?? asStrOrNull(map['image']) ?? '';
+      final preview = asStrOrNull(map['preview']) ?? asStrOrNull(map['thumbnail']) ?? '';
+      final sample = asStrOrNull(map['sample']) ?? '';
       // 没有任何可用媒体地址的条目直接跳过：放进去只会渲染成一张破图。
       if (file.isEmpty && preview.isEmpty) continue;
 
-      final width = _int(map['width']);
-      final height = _int(map['height']);
+      final width = asIntOrNull(map['width']);
+      final height = asIntOrNull(map['height']);
       final tagList = map['tags'];
       final tags = tagList is List
           ? tagList.whereType<String>().toList()
@@ -62,10 +66,10 @@ class Shimmie2Parser {
             : 1.0,
         width: width ?? 0,
         height: height ?? 0,
-        rating: normalizeRating(_str(map['rating'])),
-        score: _int(map['score']) ?? 0,
-        source: _str(map['source']),
-        postUrl: _str(map['post_url']),
+        rating: normalizeRating(asStrOrNull(map['rating'])),
+        score: asIntOrNull(map['score']) ?? 0,
+        source: asStrOrNull(map['source']),
+        postUrl: asStrOrNull(map['post_url']),
       ));
     }
     return posts;
@@ -216,17 +220,5 @@ class Shimmie2Parser {
         ? baseUrl.substring(0, baseUrl.length - 1)
         : baseUrl;
     return url.startsWith('/') ? '$base$url' : '$base/$url';
-  }
-
-  static String? _str(Object? value) {
-    if (value == null) return null;
-    final text = value.toString().trim();
-    return text.isEmpty ? null : text;
-  }
-
-  static int? _int(Object? value) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    return int.tryParse(value?.toString() ?? '');
   }
 }

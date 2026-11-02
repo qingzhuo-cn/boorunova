@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/data/repository/server/entity/server.dart';
 import 'package:boorunova/data/repository/server/user_server_repo.dart';
 import 'package:boorunova/presentation/l10n/app_strings.dart';
@@ -16,7 +19,7 @@ import 'package:go_router/go_router.dart';
 class OnboardingPage extends ConsumerWidget {
   const OnboardingPage({super.key});
 
-  static const _templates = BooruSiteTemplate.all;
+  static final List<BooruSiteTemplate> _templates = BooruSiteTemplate.all;
 
   /// 保存当前已勾选的站点并完成引导（用于「开始/下一步」）。
   Future<void> _finish(WidgetRef ref, BuildContext context) async {
@@ -88,7 +91,7 @@ class OnboardingPage extends ConsumerWidget {
                 Expanded(
                   child: step == 0
                       ? _buildLanguageStep(theme, language, ref)
-                      : _buildSitesStep(theme, ref),
+                      : _buildSitesStep(context, theme, ref),
                 ),
                 Row(
                   children: [
@@ -155,7 +158,31 @@ class OnboardingPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSitesStep(ThemeData theme, WidgetRef ref) {
+  Widget _buildSitesStep(BuildContext context, ThemeData theme, WidgetRef ref) {
+    // Play 版没有出厂模板（site_presets 编译期置空）：引导页不能变成一个
+    // 空白列表，而是引导用户**自己添加第一个服务器**——这正是 BYO 的
+    // 第一课，也保证界面上不出现任何站点名。
+    if (_templates.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          Icon(Icons.add_link,
+              size: 40, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(height: 12),
+          Text(T.addBooruServer, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () async {
+              await _complete(ref);
+              if (context.mounted) await context.push('/servers/scan');
+            },
+            icon: const Icon(Icons.add),
+            label: Text(T.addServer),
+          ),
+        ],
+      );
+    }
     final selected = ref.watch(onboardingProvider).selected;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

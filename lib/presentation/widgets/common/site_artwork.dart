@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'dart:math';
 
 import 'package:boorunova/boorus/engine/booru_repository.dart';
@@ -77,13 +80,13 @@ class _SiteArtworkState extends ConsumerState<SiteArtwork> {
 
     // 黑名单过滤放在这里而不是 provider 里：屏蔽列表随时会变，
     // 放进 provider 会让改一次黑名单就重打一遍站点接口。
+    //
+    // 但**必须走共享谓词** filterBlockedPosts：这里曾经自己拼一个「标签名集合」
+    // 做过滤，于是站点作用域的屏蔽（OPT §6.4）被当成全局的——用户只在 A 站
+    // 屏蔽的词，会让抽屉头图在 B 站也少一张。
     final blocked = ref.watch(tagsBlockerStateProvider);
-    final blockedNames = blocked.values.map((t) => t.name).toSet();
-    final posts = blockedNames.isEmpty
-        ? candidates
-        : candidates
-            .where((p) => !p.tags.any(blockedNames.contains))
-            .toList(growable: false);
+    final posts =
+        blocked.isEmpty ? candidates : filterBlockedPosts(candidates, blocked);
 
     if (posts.isEmpty) return const _ArtworkFallback();
 

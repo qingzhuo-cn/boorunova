@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 /// 搜索页回传给首页的提交内容。
 ///
 /// 评级**必须**是结构化短码（`s`/`q`/`e`），由各引擎映射成自己的写法，

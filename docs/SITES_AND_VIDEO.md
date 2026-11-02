@@ -26,7 +26,7 @@ Gelbooru V2 一行覆盖 6 个站点：它们是同一套 DAPI 协议，只有�
 
 1. 列表：解析 `/videos/<id>/<slug>/` 链接，取缩略图、时长；标签从 slug 与
    标题反推（视频站不提供标签字段）。
-2. 播放：打开时才调 `BooruRepository.resolvePlaybackUrl(postUrl)` 抓详情页，
+2. 播放：打开时才调 `BooruRepository.resolveMediaUrl(postUrl)` 抓详情页，
    从 `flashvars` 解出 `video_url` / `video_alt_url` / `video_alt_url2`；
    解不到就在整页里找 `mp4|webm|m3u8|mpd` 直链。
 3. 挑地址的优先级：**mp4 优先于流清单**——mp4 能播也能存，HLS 只能播。
@@ -59,9 +59,42 @@ Gelbooru V2 一行覆盖 6 个站点：它们是同一套 DAPI 协议，只有�
 1. `lib/boorus/engine/booru_type.dart`：枚举加一项（同一协议家族的克隆**不用**加，复用现有类型）。
 2. `lib/boorus/<家族>/`：`xxx.dart`（Booru 元数据）+ `xxx_repository.dart` + `parser/xxx_parser.dart`。
 3. `lib/boorus/engine/registry.dart`：`_registerDefaults` 注册 + `_probePaths` 探测路径 + `_probeSignatures` 响应体特征 + `scanner` 域名表。
-4. `lib/presentation/screens/server/booru_site_template.dart`：加模板（同名协议家族直接复用类型）。
+   - 特征要取**该引擎 parser 真正读取的键**，且每个类型要求**全部标记同时出现**：
+     单个 `"id"` 之类太弱，任何 JSON API 都可能命中（`matchesProbeResponse`）。
+   - 探测必须用 `ResponseType.plain` 取原始响应串。用默认 JSON 解析时 dio 会
+     把响应解成对象，`toString()` 出来的特征里**引号没了**，于是所有 JSON 引擎
+     的按类型探测静默失效（只剩域名捷径兜底，自建站判不出来）。
+4. `lib/boorus/engine/site_presets.dart`：加模板（同名协议家族直接复用类型），并在同文件补该类型的默认域名与探测域名捷径。**模板只有这一处数据面**——`booru_site_template.dart` 只负责把 `PresetStyle` 映射成图标与配色。改完必须跑 `tool/check_site_presets.sh` 与（发 Play 包时）`tool/check_play_bytecode.sh`，见 docs/RELEASING.md 第 4.2 节。
 5. `test/boorus/`：解析器固件测试。
 
 > 只有 1–2 步是本模板必须的：3、4、5 目前仍需手写。把站点元数据收敛成一张
 > `BooruSiteDescriptor`（域名、探测路径与特征、模板、域名表同源）可以把 3、4
 > 变成自动派生——这是下一步的收敛方向。
+## 五、站点核验（夜间自动）
+
+站点改版是**静默**失效：我们这边没有任何报错，用户那边表现为「这个站突然刷不出来
+了」。`test/nightly_site_health_test.dart` 对全部预置站点做一次协议特征核验
+（只断言协议、不取内容、不落盘），由 `.github/workflows/site-healthcheck.yml`
+每晚在**海外 runner** 上跑。
+
+本地手动核验：
+
+```bash
+flutter test test/nightly_site_health_test.dart \
+  --dart-define=boorunova.nightly=true --reporter expanded
+```
+
+不带 `--dart-define` 时那些用例全部 skip，所以普通 `flutter test` 依然离线可绿。
+本机在 DNS 污染/无外网环境下会报「请求本身失败」，那是**预期**的——夜检跑在海外
+runner 上。
+
+失败怎么读：
+
+| 报错 | 含义 | 怎么办 |
+|---|---|---|
+| 请求本身失败（网络/DNS） | 站挂了、被墙、域名换了 | 不是协议问题；先确认站点现状 |
+| 端点还在，但响应已不符合特征串 | 站点改版 | 抓一次真实响应，按新形状更新 `registry.dart` 的 `_probePaths` / `_probeSignatures`；特征必须取**该引擎 parser 真正读取的键**，且要求全部标记同时出现 |
+| 域名捷径不再指向该类型 | 站点换域名 | 只改 `site_presets.dart`（站点数据的唯一数据面） |
+
+> 为什么不放进必过门禁：真站点核验依赖外网，把它做成必过检查会让「别人家站点抖
+> 一下」变成我们的红。所以它单独一条 workflow、失败开 issue、不拦发布。

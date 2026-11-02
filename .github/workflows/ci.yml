@@ -35,6 +35,34 @@ jobs:
       - name: Test
         run: flutter test
 
+      - name: Test（Play 版编译期开关）
+        # 同一份测试跑两个渠道：预置相关用例按渠道自动 skip，其余两边都必须绿。
+        # 这条守的是「Play 版不是只靠门禁，而是真的能跑起来」。
+        run: flutter test --dart-define=boorunova.play=true
+
+      - name: 依赖体检（只报告，不拦 CI）
+        # 目的是把「有哪些依赖已经落后」打印到日志里，配合每季度一次的小步
+        # 升级，避免攒成大版本再一次性升（那种升级必然伴随大量行为变化）。
+        # `|| true`：有新版本是常态，不该让 PR 变红。
+        run: flutter pub outdated || true
+
+      - name: 断言站点预置只有一处（源码级）
+        # 预置曾散在「模板 / 引导默认勾选 / 探测域名捷径 / 引擎默认域名 /
+        # 解析器默认站点」五处，Play 版要清零就得五处都改对。这条断言把
+        # 「单一数据面」变成 CI 能拦下来的硬约束（字节级断言在 release.yml）。
+        run: bash tool/check_site_presets.sh
+
+      - name: 断言「预览图选择」只有一处（源码级）
+        # 查看器 / 详情页头图 / 收藏弹层大图曾各写一遍「sample 优先」；
+        # OPT §6.4 把预览画质变成可配置项后，三处必须同时改，而它们正是在
+        # 三次不同的改动里各自被发现的。这条断言把「只有一个决定点」变成硬约束。
+        run: bash tool/check_preview_urls.sh
+
+      - name: 断言界面文案全部走 T（源码级）
+        # README 对外宣称「界面与提示完整双语」。硬编码中文会让英文用户看到
+        # 半截中文，而这类遗漏只有在切语言时才暴露——做成 CI 断言，宣称才成立。
+        run: bash tool/check_i18n_coverage.sh
+
       - name: 断言清单策略（源码级）
         # 刻意**不**在这里构建 Android：插件里写死的 compileSdk 36 需要 runner
         # 装对应的 SDK 平台，会给每次 PR 增加数分钟且随时可能因环境漂移而红。

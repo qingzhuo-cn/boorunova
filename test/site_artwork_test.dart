@@ -305,24 +305,49 @@ void main() {
       expect(tapped, isFalse);
     });
 
-    testWidgets('候选全被黑名单挡掉时回落渐变，且不再可点', (tester) async {
+    testWidgets('站点作用域的黑名单只在该站点生效（头图不再被别站的屏蔽影响）',
+        (tester) async {
+      // 第 2 轮曾把「只看标签名、不看作用域」钉成现状，并注明：站点作用域
+      // （OPT §6.4）落地时这条会失败，且失败是有意的。这里就是那次「有意
+      // 失败」的兑现：换成新口径，并同时验两个方向。
       final repo = _FakeRepo({
         'order:random|s': [_post('1', tags: const ['spoiler'])],
       });
       var tapped = false;
 
+      // 1) 屏蔽条目属于**别的**站点 → 本站头图照常显示、可点
       await pumpArtwork(
         tester,
-        newContainer(blocked: {0: const BooruTag(serverId: '', name: 'spoiler')}),
+        newContainer(
+            blocked: {5: const BooruTag(serverId: 'another-server', name: 'spoiler')}),
         repo: repo,
         onTap: (_) => tapped = true,
       );
       await tester.pumpAndSettle();
-
       await tester.tap(find.byType(SiteArtwork));
       await tester.pump();
+      expect(tapped, isTrue,
+          reason: '只在别的站屏蔽 spoiler，本站头图不该被挡');
+    });
 
-      expect(tapped, isFalse);
+    testWidgets('站点作用域＝当前站点（或全局）时头图仍然被挡', (tester) async {
+      final repo = _FakeRepo({
+        'order:random|s': [_post('1', tags: const ['spoiler'])],
+      });
+      var tapped = false;
+
+      // 当前活动站点的 serverId 是 'test'（见 _FakeRepo.serverId）
+      await pumpArtwork(
+        tester,
+        newContainer(
+            blocked: {5: const BooruTag(serverId: 'test', name: 'spoiler')}),
+        repo: repo,
+        onTap: (_) => tapped = true,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(SiteArtwork));
+      await tester.pump();
+      expect(tapped, isFalse, reason: '作用域命中当前站点时必须挡掉');
     });
 
     testWidgets('没有站点时不请求站点接口，也不可点（回落主题渐变）', (tester) async {

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/booru_repository.dart';
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 import 'package:dio/dio.dart';
@@ -39,6 +42,28 @@ abstract class BaseBooruRepository implements BooruRepository {
   /// 默认不带额外请求头；需要防盗链头的引擎自行覆盖。
   @override
   Map<String, String> get mediaHeaders => const {};
+
+  /// 本引擎单页上限：站点 API 一次请求最多返回多少条。
+  ///
+  /// 修复前的故障：各仓库的 hasMore 存在三套口径，其中「满页」判定统一写成
+  /// posts.length >= query.limit，却从没声明过「limit 不得超过站点单页上限」
+  /// 这个前提。站点收到超过自身上限的 limit 时会**静默截断**（例如请求 200
+  /// 只返回 100 条），于是 100 >= 200 为假 —— 明明还有下一页却被判成末页。
+  ///
+  /// 默认 100 是保守兜底：应用侧实际请求的 limit 最大就是 100
+  /// （pool_detail_page 的图集页），未显式声明的引擎行为不受影响；单页上限
+  /// 更小的引擎必须覆盖它，否则这里的默认值会把判定带偏。
+  int get maxPageSize => 100;
+
+  /// 把请求 limit 夹到本站单页上限。
+  ///
+  /// 调用方必须把返回值同时用于「发请求」与「算 hasMore」：只夹请求、
+  /// 判定仍用原始 limit 的话，截断问题原样保留；只夹判定则会向站点发出
+  /// 超出上限的 limit，拿到的条数与判定依据不一致。
+  int clampLimit(int limit) {
+    if (limit <= 0) return 1;
+    return limit > maxPageSize ? maxPageSize : limit;
+  }
 
   @override
   Future<List<String>> fetchTrendingTags({int limit = 20}) async => [];
@@ -105,6 +130,28 @@ String normalizeRating(String? raw) {
   }
 }
 
+/// 四档评级归一：danbooru / e621 自 2024 年起把评级拆成四档
+/// `g`(general) / `s`(sensitive) / `q`(questionable) / `e`(explicit)。
+///
+/// 关键语义变更：**`s` 从 safe 变成了 sensitive（擦边）**。直接丢给
+/// [normalizeRating] 会把擦边内容归进 UI 的 `s` —— 绿徽章 + 通过头图的
+/// isSafeRating 安全口径，而真正安全的 `g` 反而落到「未知」灰徽章。
+/// 因此这里把 `s`/`sensitive` 并入三档 UI 的 `q`（可疑），`g` 交给
+/// [normalizeRating] 映射为 `s`（安全）。
+String normalizeRatingFourTier(String? raw) {
+  final value = (raw ?? '').trim().toLowerCase();
+  if (value == 's' || value == 'sensitive') return 'q';
+  return normalizeRating(value);
+}
+
+/// 四档世界的查询侧映射：UI 的「安全」必须查 `rating:g`（真安全档），
+/// 而不是 `rating:s`（那是 sensitive，会拉到擦边内容或 0 结果）。
+const Map<String, String> ratingMapFourTier = {
+  's': 'rating:g',
+  'q': 'rating:q',
+  'e': 'rating:e',
+};
+
 /// 把解析层 [BooruPost] 转为 UI 层 [PostSummary]。
 /// 原先 8 个引擎各有一份逐字节相同的私有扩展，现收敛为一份。
 extension BooruPostToSummary on BooruPost {
@@ -127,6 +174,7 @@ extension BooruPostToSummary on BooruPost {
         score: score,
         source: source,
         postUrl: postUrl,
+        duration: duration,
         isVideo: isVideo,
       );
 }

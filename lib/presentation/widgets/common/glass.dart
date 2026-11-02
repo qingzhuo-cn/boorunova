@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'dart:ui';
 
 import 'package:boorunova/presentation/provider/app_settings.dart';

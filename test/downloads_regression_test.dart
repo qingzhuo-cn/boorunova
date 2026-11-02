@@ -36,8 +36,10 @@ void main() {
       UserDownloadsRepo().add(_entry('3')),
     ]);
 
-    expect(repo.getAll().map((e) => e.postId),
-        containsAll(<String>['1', '2', '3']));
+    // 无序全等而不是 containsAll：后者对「多出一条重复记录」也会通过，
+    // 而重复条目正是这段并发写要防的回归。
+    final ids = repo.getAll().map((e) => e.postId).toList()..sort();
+    expect(ids, <String>['1', '2', '3']);
   });
 
   test('namespaces prevent same post id collisions across sites', () {

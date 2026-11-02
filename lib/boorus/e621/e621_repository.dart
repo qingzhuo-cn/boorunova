@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/e621/parser/e621_parser.dart';
 import 'package:boorunova/boorus/engine/base_booru_repository.dart';
 import 'package:boorunova/boorus/engine/booru_repository.dart';
@@ -8,25 +11,28 @@ class E621Repository extends BaseBooruRepository {
     required super.serverId,
   });
 
+  /// e621 的单页上限（官方 API 允许 1–320）。
+  ///
+  /// 与 danbooru 同理：站点超限会静默截断，hasMore 拿原始 limit 比会把满页
+  /// 误判成末页。请求与 hasMore 共用夹持后的同一个值。
+  static const int kMaxPageSize = 320;
+
+  @override
+  int get maxPageSize => kMaxPageSize;
+
   @override
   Future<BooruPageResult> searchPosts(BooruQuery query) async {
-    final tags = <String>[
-      if (query.tags.isNotEmpty) query.tags,
-      if (query.rating != null)
-        switch (query.rating!) {
-          's' => 'rating:safe',
-          'q' => 'rating:questionable',
-          'e' => 'rating:explicit',
-          _ => 'rating:${query.rating}',
-        },
-    ].join(' ');
+    // e621 同样迁移到四档 g/s/q/e；「安全」查 rating:g（rating:safe 已过时，
+    // 在现行站点上要么 0 结果、要么按 sensitive 口径返回）。
+    final tags = buildTagsQuery(query, ratingMapFourTier);
+    final limit = clampLimit(query.limit);
 
     final response = await dio.get(
       '/posts.json',
       queryParameters: {
         'tags': tags,
         'page': query.page,
-        'limit': query.limit,
+        'limit': limit,
       },
     );
 
@@ -44,7 +50,7 @@ class E621Repository extends BaseBooruRepository {
         baseUrl: dio.options.baseUrl);
     return BooruPageResult(
       posts: posts.map((p) => p.toSummary(serverId)).toList(),
-      hasMore: posts.length >= query.limit,
+      hasMore: posts.length >= limit,
     );
   }
 

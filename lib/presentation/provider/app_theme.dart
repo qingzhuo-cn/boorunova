@@ -1,6 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum AppThemeMode {
   system,
@@ -9,11 +11,40 @@ enum AppThemeMode {
   midnight,
 }
 
-final appThemeModeProvider = StateProvider<AppThemeMode>((ref) {
-  return AppThemeMode.system;
-});
+// 主题不是独立状态：唯一来源是 AppSettings.themeMode。此前这里另有一个
+// StateProvider，两份状态各自更新（启动时从 settings 同步一次、切换时双写），
+// 备份恢复的主题必须重启才生效——删掉它，让 MaterialApp 直接 select settings。
 
 class AppTheme {
+  /// ThemeData 构建不便宜（ColorScheme.fromSeed 要跑一遍调和算法），而
+  /// MaterialApp 每次重建都会取两份主题。这里按 (模式, 强调色) 记忆化：
+  /// 调列数 / 切语言 / 改任意其它设置时不再重复构建。
+  static final Map<String, ThemeData> _cache = <String, ThemeData>{};
+
+  static ThemeData _memo(String key, ThemeData Function() build) {
+    final cached = _cache[key];
+    if (cached != null) return cached;
+    // 色板是有限集合，加个上限防止意外注入大量不同 seed 时无界增长
+    if (_cache.length >= 24) _cache.clear();
+    return _cache[key] = build();
+  }
+
+  /// MaterialApp 用的亮色主题（缓存版）。
+  static ThemeData lightFor(int accent) =>
+      _memo('light:$accent', () => light(accentColor: Color(accent)));
+
+  /// MaterialApp 用的暗色主题（缓存版）：system 跟随系统时用午夜观感，
+  /// 显式 dark 用普通暗色（与既有行为一致）。
+  static ThemeData darkFor(AppThemeMode mode, int accent) {
+    final midnight = mode == AppThemeMode.midnight || mode == AppThemeMode.system;
+    return _memo(
+      '${midnight ? 'midnight' : 'dark'}:$accent',
+      () => midnight
+          ? AppTheme.midnight(accentColor: Color(accent))
+          : dark(accentColor: Color(accent)),
+    );
+  }
+
   static ThemeData light({Color accentColor = const Color(0xFF951EE5)}) {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: accentColor,

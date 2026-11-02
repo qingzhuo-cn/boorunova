@@ -1,10 +1,17 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 BooruNova contributors
+
 import 'package:boorunova/boorus/engine/base_booru_repository.dart';
+import 'package:boorunova/boorus/engine/json_coerce.dart';
+import 'package:boorunova/boorus/engine/site_presets.dart';
 import 'package:boorunova/data/repository/booru/entity/post.dart';
 
 class Rule34Parser {
   Rule34Parser._();
 
-  static const _siteUrl = 'https://rule34.xxx';
+  /// 缺省站点域名。仓库会把自己配置的 baseUrl 传进来：
+  /// 同引擎的镜像站（rule34.us 等）此前帖子链接一律硬编码指向 rule34.xxx。
+  static const String defaultSiteUrl = kRule34SiteUrl;
 
   static String _abs(String url) {
     if (url.startsWith('//')) return 'https:$url';
@@ -13,19 +20,24 @@ class Rule34Parser {
 
   static List<BooruPost> parsePosts(
     String serverId,
-    List<dynamic> json,
-  ) {
-    return json.whereType<Map<String, dynamic>>().map((post) {
-      final id = post['id']?.toString() ?? '';
-      var fileUrl = _abs((post['file_url'] as String?) ?? '');
-      var sampleUrl = _abs((post['sample_url'] as String?) ?? '');
-      final previewUrl = _abs((post['preview_url'] as String?) ?? '');
-      final tags = (post['tags'] as String?) ?? '';
-      final width = (post['width'] as int?) ?? 0;
-      final height = (post['height'] as int?) ?? 0;
-      final rating = _normalizeRating(post['rating'] as String? ?? '');
-      final score = (post['score'] as int?) ?? 0;
-      final source = _abs((post['source'] as String?) ?? '');
+    List<dynamic> json, {
+    String siteUrl = defaultSiteUrl,
+  }) {
+    // 站点的 web 域名以 hxxp 之外的协议给出时，帖子链接同样要能用
+    final base = siteUrl.endsWith('/')
+        ? siteUrl.substring(0, siteUrl.length - 1)
+        : siteUrl;
+    return parseEach(json, (post) {
+      final id = asStr(post['id']);
+      final fileUrl = _abs(asStr(post['file_url']));
+      var sampleUrl = _abs(asStr(post['sample_url']));
+      final previewUrl = _abs(asStr(post['preview_url']));
+      final tags = asStr(post['tags']);
+      final width = asInt(post['width']);
+      final height = asInt(post['height']);
+      final rating = _normalizeRating(asStr(post['rating']));
+      final score = asInt(post['score']);
+      final source = _abs(asStr(post['source']));
 
       if (sampleUrl.isEmpty) sampleUrl = fileUrl;
 
@@ -35,22 +47,23 @@ class Rule34Parser {
         thumbnailUrl: previewUrl,
         sampleUrl: sampleUrl,
         originalUrl: fileUrl,
-        tags: tags.isEmpty ? [] : tags.split(' '),
+        tags: tags.isEmpty ? const [] : tags.split(' '),
         aspectRatio: height > 0 ? width / height : 1.0,
         width: width,
         height: height,
         rating: rating,
         score: score,
-        source: source.isEmpty ? null : source,
-        postUrl: id.isEmpty ? null : '$_siteUrl/index.php?page=post&s=view&id=$id',
+        source: asStrOrNull(source),
+        postUrl:
+            id.isEmpty ? null : '$base/index.php?page=post&s=view&id=$id',
         uploader: null,
       );
-    }).toList();
+    });
   }
 
   static List<String> parseSuggestions(List<dynamic> json) {
     return json.whereType<Map<String, dynamic>>().map((tag) {
-      return (tag['tag'] as String?) ?? '';
+      return asStr(tag['tag']);
     }).where((name) => name.isNotEmpty).toList();
   }
 
