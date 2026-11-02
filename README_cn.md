@@ -8,7 +8,7 @@
 
 [English](README.md) / 简体中文
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android%208.0%2B-green.svg)](https://github.com/qingzhuo-cn/boorunova/releases)
 [![Language](https://img.shields.io/badge/language-Dart%20%2F%20Flutter-0175C2.svg)](https://flutter.dev)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
@@ -231,4 +231,9 @@ flutter build apk --release --target-platform android-arm64,android-x64
 
 ## 开源协议
 
-[MIT](LICENSE) © BooruNova 贡献者
+[GNU AGPL-3.0](LICENSE) © BooruNova 贡献者
+
+BooruNova 是自由软件：你可以依据自由软件基金会发布的 GNU Affero 通用公共许可证
+（第 3 版，或你选择的任何更新版本）条款重新分发和/或修改它。本软件按“原样”分发，
+**不提供任何担保**，甚至不提供适销性或特定用途适用性的默示担保。详情见
+[LICENSE](LICENSE) 文件。

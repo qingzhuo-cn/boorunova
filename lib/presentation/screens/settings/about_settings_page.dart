@@ -50,7 +50,7 @@ class AboutSettingsPage extends ConsumerWidget {
         ListTile(
           leading: const Icon(Icons.gavel_outlined),
           title: const Text('开源协议'),
-          subtitle: const Text('MIT License'),
+          subtitle: const Text('GNU AGPL-3.0'),
           onTap: () => _openUrl('$_repoUrl/blob/main/LICENSE'),
         ),
       ]),

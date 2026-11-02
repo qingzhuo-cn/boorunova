@@ -96,7 +96,7 @@ BooruNova 将多个 Booru 图站整合进同一个应用，用统一的搜索栏
 
 ## 开源
 
-BooruNova 以 [MIT 协议](LICENSE) 开源，欢迎提交 Issue 和 Pull Request。
+BooruNova 以 [GNU AGPL-3.0 协议](LICENSE) 开源，欢迎提交 Issue 和 Pull Request。
 
 - 源代码：https://github.com/qingzhuo-cn/boorunova
 - 问题反馈：https://github.com/qingzhuo-cn/boorunova/issues

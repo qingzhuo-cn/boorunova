@@ -11,7 +11,7 @@ for favorites & downloads. Images and videos, in the same app.
 
 English / [简体中文](README_cn.md)
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android%208.0%2B-green.svg)](https://github.com/qingzhuo-cn/boorunova/releases)
 [![Language](https://img.shields.io/badge/language-Dart%20%2F%20Flutter-0175C2.svg)](https://flutter.dev)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
@@ -240,4 +240,11 @@ mapping — including a real TLS handshake against a local self-signed server.
 
 ## License
 
-[MIT](LICENSE) © BooruNova contributors
+[GNU AGPL-3.0](LICENSE) © BooruNova contributors
+
+BooruNova is free software: you can redistribute it and/or modify it under the
+terms of the GNU Affero General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version. It is distributed in the hope that it will be useful, but **without any
+warranty**; without even the implied warranty of merchantability or fitness for
+a particular purpose. See the [LICENSE](LICENSE) file for details.
