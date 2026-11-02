@@ -19,7 +19,7 @@
 
 ### 📲 立即下载
 
-**最新版本：[v1.8.6](https://github.com/qingzhuo-cn/boorunova/releases/latest)** —— Android 8.0+
+**最新版本：[v1.8.7](https://github.com/qingzhuo-cn/boorunova/releases/latest)** —— Android 8.0+
 
 绝大多数手机装 **arm64** 那个（19 MB）就够了；**通用包**留给模拟器和少数 x86_64 设备。
 
@@ -123,7 +123,7 @@
 | 安装包 | 体积 | 适用设备 |
 |--------|------|----------|
 | `app-arm64-v8a-release.apk` | 19 MB | **几乎所有手机** —— 推荐 |
-| `app-release.apk` | 38 MB | 模拟器与少数 x86_64 设备（arm64 + x86_64） |
+| `app-release.apk` | 37 MB | 模拟器与少数 x86_64 设备（arm64 + x86_64） |
 
 两个包用同一把正式密钥签名，可以随意互换——Android 视它们为同一个应用，互相覆盖升级即可。
 
@@ -156,7 +156,7 @@ flutter run
 flutter build apk --release --target-platform android-arm64,android-x64
 ```
 
-`--target-platform` 不能省：不加会把 armeabi-v7a 一起打进通用包，体积从 ~38 MB 涨到 ~56 MB，
+`--target-platform` 不能省：不加会把 armeabi-v7a 一起打进通用包，体积从 ~37 MB 涨到 ~56 MB，
 与上面的下载表对不上。
 
 产物：`build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`（arm64）与

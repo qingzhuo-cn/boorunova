@@ -22,7 +22,7 @@ English / [简体中文](README_cn.md)
 
 ### 📲 Try it now
 
-**Latest: [v1.8.6](https://github.com/qingzhuo-cn/boorunova/releases/latest)** — Android 8.0+
+**Latest: [v1.8.7](https://github.com/qingzhuo-cn/boorunova/releases/latest)** — Android 8.0+
 
 Most phones want the **arm64** build (19 MB). Use the **universal** one only if
 you're on an emulator or a rare x86_64 device.
@@ -127,7 +127,7 @@ Grab the latest APK from [GitHub Releases](https://github.com/qingzhuo-cn/boorun
 | Package | Size | For |
 |---------|------|-----|
 | `app-arm64-v8a-release.apk` | 19 MB | **Almost every phone** — recommended |
-| `app-release.apk` | 38 MB | Emulators and rare x86_64 devices (arm64 + x86_64) |
+| `app-release.apk` | 37 MB | Emulators and rare x86_64 devices (arm64 + x86_64) |
 
 Both are signed with the same release key, so you can switch between them freely —
 Android treats them as the same app and a straight upgrade over the other.
@@ -163,7 +163,7 @@ flutter build apk --release --target-platform android-arm64,android-x64
 ```
 
 `--target-platform` is required: without it the universal APK also packs
-armeabi-v7a and grows from ~38 MB to ~56 MB, contradicting the download table above.
+armeabi-v7a and grows from ~37 MB to ~56 MB, contradicting the download table above.
 
 Outputs: `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (arm64) and
 `build/app/outputs/flutter-apk/app-release.apk` (universal).
