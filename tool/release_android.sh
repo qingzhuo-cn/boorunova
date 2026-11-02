@@ -65,6 +65,7 @@ else
 fi
 
 # ---- 校验和 ----
+# 只留本地存档（打印在日志里自查）；Release 页面只挂安装包。
 ( cd "$APK_DIR" && sha256sum app-arm64-v8a-release.apk app-release.apk > SHA256SUMS.txt )
 cat "$APK_DIR/SHA256SUMS.txt"
 
@@ -74,11 +75,12 @@ if [ "$PUBLISH" = "1" ]; then
   if [ -f "docs/release_notes/$TAG.md" ]; then
     NOTES_ARGS=(--notes-file "docs/release_notes/$TAG.md")
   fi
+  # Release 只挂安装包；符号留在 build/symbols.tar.gz，需要时再单独上传
   gh release create "$TAG" \
     --title "BooruNova $TAG" \
     --latest \
     "${NOTES_ARGS[@]}" \
-    "$ARM64" "$UNIVERSAL" "$APK_DIR/SHA256SUMS.txt"
+    "$ARM64" "$UNIVERSAL"
   ok "已发布 $TAG"
 else
   echo "（未加 --publish，仅构建。上传：gh release create $TAG --title \"BooruNova $TAG\" --latest $ARM64 $UNIVERSAL）"

@@ -71,9 +71,9 @@ tool/release_android.sh --publish  # 构建自检后创建 GitHub Release 并上
 - [ ] `apksigner verify --print-certs` 的证书 SHA-256 == 台账里的 `5687a294…`
 - [ ] 装机清单无 `REQUEST_INSTALL_PACKAGES` / `POST_NOTIFICATIONS`，且 `allowBackup="false"`
       （CI 里有断言，本地可 `aapt2 dump xmltree <apk> --file AndroidManifest.xml`）
-- [ ] 通用包 ≈38MB（不是 56MB）；arm64 专用包实测 **18.5MB**（拆分符号前 19.6MB）
-- [ ] `symbols.tar.gz` 已随本次 Release 上传（**必须**：应用内有「导出诊断日志」，
-      没有对应版本的符号就把用户给的栈变成一串地址）
+- [ ] 通用包 ≈37MB（不是 56MB）；arm64 专用包约 **19MB**
+- [ ] 调试符号已归档：本地在 `build/symbols.tar.gz`，CI 走 workflow artifact（`symbols-<tag>`）。
+      **Release 页面只挂安装包**，不放符号与校验和文件
 - [ ] README 的「最新版本」与下载表体积已同步
 - [ ] `docs/DEVICE_VERIFICATION.md` 里与本次改动相关的条目已在真机跑过（离线环境覆盖不到的项）
 
@@ -128,9 +128,10 @@ tool/release_android.sh --publish  # 构建自检后创建 GitHub Release 并上
 | `resourceConfigurations += ['en', 'zh']` | 已有 | 裁掉 AGP 打进的上百种 locale |
 | `--split-debug-info=build/symbols` | 本轮接入 | **arm64 专用包 19.6MB → 18.5MB**（符号 3.76MB 单独归档） |
 
-**符号是发布资产的一部分**：`--split-debug-info` 只是把符号从 `libapp.so`
+**符号要留，但不进 Release**：`--split-debug-info` 只是把符号从 `libapp.so`
 挪出去，不是删掉。用户用「设置 → 关于 → 导出诊断」给出的崩溃栈必须靠同一次
-构建的符号才能还原，所以 release.yml 会打包 `symbols.tar.gz` 并随 Release 上传。
+构建的符号才能还原，所以 release.yml 会打包 `symbols.tar.gz`，作为 **workflow
+artifact** 留存（本地则在 `build/symbols.tar.gz`）。Release 页面只挂安装包。
 本地发版脚本 `tool/release_android.sh` 已带同一参数（口径与 CI 一致）。
 
 ## 4.4 两条渠道：GitHub 直装版 与 Play 版（零预置 BYO）

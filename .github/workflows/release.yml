@@ -222,16 +222,24 @@ jobs:
 
       - name: 归档调试符号
         # 符号与这次构建一一对应，丢了就没法把用户的崩溃栈还原成可读位置。
+        # 但不放进 Release：Release 只留安装包，符号走 workflow artifact 留存。
         run: |
           set -euo pipefail
           ls -la build/symbols
           tar -czf build/symbols.tar.gz -C build symbols
 
+      - name: 上传调试符号为构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: symbols-${{ inputs.tag || github.ref_name }}
+          path: build/symbols.tar.gz
+          retention-days: 90
+
       - name: 生成校验和
+        # 只打印到日志，不随 Release 上传——Release 页面只放安装包。
         run: |
           cd build/app/outputs/flutter-apk
-          sha256sum app-arm64-v8a-release.apk app-release.apk > SHA256SUMS.txt
-          cat SHA256SUMS.txt
+          sha256sum app-arm64-v8a-release.apk app-release.apk | tee SHA256SUMS.txt
 
       - name: 上传到 GitHub Release
         env:
@@ -245,12 +253,10 @@ jobs:
             v*) ;;
             *) echo "::error::tag 必须以 v 开头（收到：$TAG）"; exit 1 ;;
           esac
+          # Release 只挂安装包（arm64 专用 + 通用）。
           ASSETS=(
             build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
             build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/flutter-apk/SHA256SUMS.txt
-            # 调试符号：用户导出的诊断日志要靠它才能还原成可读栈
-            build/symbols.tar.gz
           )
           if gh release view "$TAG" > /dev/null 2>&1; then
             echo "Release $TAG 已存在：补传并覆盖资产（重跑场景）"
