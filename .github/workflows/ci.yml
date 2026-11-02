@@ -17,6 +17,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # JDK 写死：ubuntu-latest 的默认 Java 已经到 25，Gradle 8.7 读不了它的
+      # class 文件（报 "Unsupported class file major version 69"）。本机实测
+      # JDK 21 + Gradle 8.7 + Flutter 3.24 的组合可构建，就固定 21。
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
       # Flutter 版本写死：.metadata 里记录的 revision 与本机不一致，
       # 不固定版本会让「本机能过、CI 不过」变成日常。
       - uses: subosito/flutter-action@v2

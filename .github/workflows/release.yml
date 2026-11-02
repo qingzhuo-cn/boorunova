@@ -47,6 +47,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      # JDK 写死：ubuntu-latest 默认 Java 已是 25，Gradle 8.7 读不了
+      # （Unsupported class file major version 69）。与 ci.yml 保持同一套组合。
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.24.0
@@ -102,6 +109,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      # JDK 写死：ubuntu-latest 默认 Java 已是 25，Gradle 8.7 读不了
+      # （Unsupported class file major version 69）。与 ci.yml 保持同一套组合。
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
 
       - uses: subosito/flutter-action@v2
         with:
