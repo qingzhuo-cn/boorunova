@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (c) 2026 BooruNova contributors
 
 /// 各引擎 JSON 解析共用的**宽容**取值工具。

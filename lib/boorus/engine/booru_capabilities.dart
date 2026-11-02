@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (c) 2026 BooruNova contributors
 
 /// 引擎能力声明：控制 UI 显隐，避免给不支持的站点展示无效入口。

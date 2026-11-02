@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (c) 2026 BooruNova contributors
 
 /// 备份格式的**纯逻辑**：组装导出封套、校验版本、按段合并导入。

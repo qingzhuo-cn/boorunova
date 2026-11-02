@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (c) 2026 BooruNova contributors
 
 /// 播放时间显示：`mm:ss`，超过一小时给 `h:mm:ss`。
